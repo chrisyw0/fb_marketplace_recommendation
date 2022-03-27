@@ -1,0 +1,11 @@
+---
+aws-postgresql:
+  dbapi: "psycopg2"
+  endpoint: ${FB_MKS_AWS_POSTGRESQL_ENDPOINT}
+  username: ${FB_MKS_POSTGRESQL_USERNAME}
+  dbtype: "postgresql"
+  password: ${FB_MKS_POSTGRESQL_PASSWORD}
+  port: 5432
+  database: ${FB_MKS_POSTGRESQL_DB}
+image-zip:
+  url: ${FB_MKS_IMG_URL}
