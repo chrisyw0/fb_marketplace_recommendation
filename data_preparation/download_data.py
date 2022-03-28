@@ -55,7 +55,7 @@ def download_data(cached_path: str = "./data/", config_file: str = "./aws.yaml")
     image_path = cached_path + "image.pkl"
 
     try:
-        print("Try reloading from Google Drive for product and image dataframe")
+        print("Try reloading from cached file for product and image dataframe")
         with open(product_path, "rb") as f:
             df_product = pickle.load(f)
 
@@ -125,7 +125,9 @@ def download_images(cached_path: str = "./data/", config_file: str = "./aws.yaml
             size = file.write(data)
             bar.update(size)
             
+    image_path = cached_path + "images/"        
+
     with ZipFile(cached_path+file_name, 'r') as zipObject:
-        zipObject.extractall(cached_path + "images/")
+        zipObject.extractall(cached_path)
         
-    print(f"{len(fnmatch.filter(os.listdir(cached_path), '*.jpg'))} images downloaded and unzipped to folder {cached_path}")
+    print(f"{len(fnmatch.filter(os.listdir(image_path), '*.jpg'))} images downloaded and unzipped to folder {cached_path}")

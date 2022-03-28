@@ -5,7 +5,8 @@ import pandas as pd
 import pickle
 
 def clean_image_data(df_image: pd.DataFrame, df_product: pd.DataFrame) -> pd.DataFrame:
-    """Clean image dataframe by removing images isn't in product frame
+    """
+    Clean image dataframe by removing images isn't in product frame and width-to-height ratio is < 0.5 or > 1.5 
 
     Args:
         df_image (pd.DataFrame): Image dataframe
@@ -14,10 +15,13 @@ def clean_image_data(df_image: pd.DataFrame, df_product: pd.DataFrame) -> pd.Dat
     Returns:
         pd.DataFrame: Image dataframe
     """
+    
     df_image_clean = df_image[df_image["product_id"].isin(df_product["id"].tolist())]
+    df_image_clean = df_image_clean[(df_image_clean["image_ratio"] >= 0.5) & (df_image_clean["image_ratio"] <= 1.5)]
+    
     return df_image_clean
 
-def create_image_data(df_image: pd.DataFrame, path: str, size: Tuple[int, int] = (144, 192)) -> pd.DataFrame:
+def create_image_data(df_image: pd.DataFrame, path: str, size: Tuple[int, int] = (144, 144)) -> pd.DataFrame:
     """
     Create extra features for image dataframe. The extra/modified features includes: 
     - image_data: Image data in numpy array, the shape is (width, height, 3) 
@@ -48,7 +52,7 @@ def create_image_data(df_image: pd.DataFrame, path: str, size: Tuple[int, int] =
             
         """
         try:
-            image = PIL.Image.open(f"{path}images/{image_id}.jpg")
+            image = PIL.Image.open(f"{path}{image_id}.jpg")
 
             image_size = image.size  
             image_mode = image.mode
