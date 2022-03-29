@@ -13,8 +13,10 @@ def show_location(df_product: pd.DataFrame, continent: str = None, country: str 
         continent (str, optional): The continent of the underlying map, should either enter continent or country. Defaults to None.
         country (str, optional): The country of the underlying map, should either enter continent or country. Defaults to None.
     """
+    df_product_copy = df_product.copy()
+    
     gdf = gpd.GeoDataFrame(
-        df_product, geometry= gpd.points_from_xy(df_product.lon, df_product.lat))
+        df_product_copy, geometry= gpd.points_from_xy(df_product_copy.lon, df_product_copy.lat))
 
     world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
 

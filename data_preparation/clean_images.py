@@ -61,6 +61,7 @@ def create_image_data(df_image: pd.DataFrame, path: str, size: Tuple[int, int] =
                 image = image.convert("RGB")
 
             image.thumbnail(size, PIL.Image.LANCZOS)
+            image = PIL.ImageOps.pad(image, size=size, color=0, centering=(0.5, 0.5))
 
             return np.asarray(image), image_size[0], image_size[1], image_size[0]/image_size[1], image_mode
 
@@ -98,7 +99,7 @@ def get_clean_image_data(df_image: pd.DataFrame, df_product: pd.DataFrame, cache
         with open(clean_image_path, "rb") as f:
             df_image_clean = pickle.load(f)
 
-        print("Reload from Google Drive for clean image dataframe")
+        print(f"Reload from {clean_image_path} for clean image dataframe")
 
     except FileNotFoundError:
         df_image_clean = create_image_data(df_image, cached_path + "images/")

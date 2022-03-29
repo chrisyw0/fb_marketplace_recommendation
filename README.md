@@ -40,7 +40,7 @@ The product dataset includes products' information (name, description, price, lo
 
 In addition, the images are zipped and stored in AWS S3. It contains all the image data (in jpg format) is available through HTTPS. 
 
-The second step is to perform feature engineering and data cleaning. It includes generating features from existing features. For example, latitude and longitude are retrieved from the location of each product item, and image width and height for each image. Outliners were also removed in this stage, such as products with an unreasonably high price and images with unexpected width-to-height ratio. 
+The second step is to perform feature engineering and data cleaning. It includes generating features from existing features. For example, latitude and longitude are retrieved from the location of each product item, and image width and height for each image. Outliners are also removed in this stage, such as products with an unreasonably high price and images with unexpected width-to-height ratio. 
 
 After feature engineering and data cleaning, the product dataset contains 6,902 rows and 23 columns and the image dataset contains 11,128 rows and 10 columns. 
 
