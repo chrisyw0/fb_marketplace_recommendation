@@ -45,3 +45,24 @@ The second step is to perform feature engineering and data cleaning. It includes
 After feature engineering and data cleaning, the product dataset contains 6,902 rows and 23 columns and the image dataset contains 11,128 rows and 10 columns. 
 
 To have some insights into the dataset, I create some plots showing the distribution of the data such as price distribution, product location ..., more details can be found in the comment of the corresponding class. 
+
+## Milestone 2
+
+The next step is to create simple machine learning models for predicting product price from product data and product type from image data. 
+
+For price prediction, a linear regression model is used. The training and testing process includes:
+- Generate features (one hot vector)
+- Normalise data
+- Split the dataset into training and testing dataset (7:3 train/test)
+- Train a model with training dataset 
+- Predict the price for testing dataset with the model
+
+We have one-hot encoded the root cateogry, cooridinates from location, and tokens count from product name and desciption from the product dataset as features. After training with the training dataset, the model is tested with the testing dataset. Finally, the performance is then measured by RMSE. 
+
+The RMSE for the model is around 167.6.
+
+For product type prediction, a logistic regression model is used. After merging the product type from product dataset, 10698 images and 12 unique categories were found. 
+
+Having similar steps as the price prediction model, we have one-hot encoded the image mode, flattened image data (10698, 144, 144, 3) -> (10698, 62208), image size (width and height) from the image dataset as features. After training with the training dataset, the model is tested with the testing dataset. Finally, the performance is then measured by accuracy.
+
+The average accuracy for the model is around 0.14
