@@ -1,20 +1,28 @@
-from data_preparation.download_data import download_images, download_data
-from data_preparation.visualize_data import visualise_data
-from data_preparation.clean_images import get_clean_image_data
-from data_preparation.clean_tabular import get_clean_product_data
-from ml_approach.ml_method import predict_price, predict_product_type
+from data_preparation.download_data import DataDownloader
+from data_preparation.visualize_data import DataVisializer
+from data_preparation.clean_images import ImageCleaner
+from data_preparation.clean_tabular import TablularDataCleaner
+from ml_approach.ml_method import MachineLearningPredictor
 
 def main():
-    df_product, df_image = download_data()
-    download_images()
+    downloader = DataDownloader()
     
-    df_image_clean = get_clean_image_data(df_image, df_product)
-    df_product_clean = get_clean_product_data(df_product, df_image_clean)
+    df_product, df_image = downloader.download_data()
+    downloader.download_images()
     
-    visualise_data(df_product_clean, df_image_clean)
+    image_cleaner = ImageCleaner(df_image, df_product)
+    df_image_clean = image_cleaner.get_clean_image_data()
     
-    predict_price(df_product_clean)
-    predict_product_type(df_product_clean, df_image_clean)
+    product_cleaner = TablularDataCleaner(df_product, df_image_clean)
+    df_product_clean = product_cleaner.get_clean_product_data()
+    
+    visualiser = DataVisializer(df_product_clean, df_image_clean) 
+    visualiser.visualise_data()
+    
+    ml_model_predictor = MachineLearningPredictor(df_product_clean, df_image_clean)
+    
+    ml_model_predictor.predict_price()
+    ml_model_predictor.predict_product_type()
     
 
 if __name__ == "__main__":
