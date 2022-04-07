@@ -6,7 +6,7 @@ import pickle
 from dataclasses import dataclass
 
 @dataclass
-class ImageCleaner():
+class ImageCleaner:
     """Clean image data
     
     Args:
@@ -84,7 +84,11 @@ class ImageCleaner():
         df_image_clean = self.df_image.copy()
         
         print("Converting images")
-        df_image_clean["image_data"], df_image_clean["image_width"], df_image_clean["image_height"], df_image_clean["image_ratio"], df_image_clean["image_mode"] = list(zip(*df_image_clean["id"].apply(get_image_information)))
+        df_image_clean["image_pixel_data"], \
+            df_image_clean["image_width"],\
+            df_image_clean["image_height"], \
+            df_image_clean["image_ratio"], \
+            df_image_clean["image_mode"] = list(zip(*df_image_clean["id"].apply(get_image_information)))
 
         print(f"Create images data success, new image dataframe shape {df_image_clean.shape}")
         
@@ -107,7 +111,7 @@ class ImageCleaner():
             print(f"Reload from {clean_image_path} for clean image dataframe")
 
         except FileNotFoundError:
-            self.df_image = self.create_image_data(self.df_image, self.cached_path + "images/")
+            self.df_image = self.create_image_data(self.cached_path + "images/")
             df_image_clean = self.clean_image_data()
             
             with open(clean_image_path, "wb") as f:
@@ -115,4 +119,5 @@ class ImageCleaner():
                 
         print(f"Clean data success, new shape {df_image_clean.shape}") 
         print(df_image_clean.head())
+
         return df_image_clean

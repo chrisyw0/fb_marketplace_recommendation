@@ -1,21 +1,22 @@
 import pandas as pd
 import numpy as np
 from sklearn import preprocessing
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import mean_squared_error, classification_report
 from typing import Tuple
 from dataclasses import dataclass
+from ..data_preparation.prepare_dataset import DatasetGenerator
 
 @dataclass
-class MachineLearningPredictor():
+class MachineLearningPredictor:
     """Predict price and category using machine learning models
     
     Args:
         df_product (pd.DataFrame): Product dataframe with additional features generated
         df_image (pd.DataFrame): Image dataframe with additional features generated
         random_state (int, optional): Random state of train and test split. Defaults to 42.
-        test_size (float, optional): Proportion of testing dataset. Defaults to 0.3 (30%).
+        val_size (float, optional):  Proportion of validation dataset. Defaults to 0.2 (20%).
+        test_size (float, optional): Proportion of testing dataset. Defaults to 0.2 (20%).
     
     """
     
@@ -23,7 +24,8 @@ class MachineLearningPredictor():
     df_image: pd.DataFrame
     
     random_state: int = 42
-    test_size: float = 0.3
+    test_size: float = 0.2
+    val_size: float = 0.2
 
     def predict_price(self) -> Tuple[LinearRegression, float]:
         """
@@ -35,25 +37,20 @@ class MachineLearningPredictor():
         Returns:
             Tuple[LinearRegression, float]: Linear regression model and RMSE
         """
-        
-        # Retrieve the price column as the prediciton target
-        df_price = self.df_product[["price"]]
-        product_price = df_price["price"].tolist()
-        
-        # One hot encoding of the root category
-        categories = pd.get_dummies(self.df_product["root_category"], prefix="category", drop_first=True)
-        df_product_reg = self.df_product.join(categories)
-        
-        # drop unused columns
-        df_product_reg = df_product_reg.drop(labels=[
-            "id", "product_name", "category", "product_description", "product_name_description", \
-            "location", "url", "page_id", "create_time", "price", \
-            "currency", "product_name_tokens", "product_description_tokens", "product_name_description_tokens", \
-            "product_name_description_word_count", "image_data", "root_category", "sub_category"], axis=1)
-        
-        # split the training and testing dataset
-        X_train, X_test, y_train, y_test = train_test_split(df_product_reg, product_price, test_size=self.test_size, random_state=self.random_state)
-        
+
+        # get the dataset
+        data_generator = DatasetGenerator(self.df_product, self.df_image)
+        df_product = data_generator.generate_product_data()
+
+        # we don't use validation dataset for ml model
+        df_train, _, df_test = data_generator.split_dataset(df_product)
+
+        y_train = df_train.price.tolist()
+        y_test = df_test.price.tolist()
+
+        X_train = df_train.drop("price", axis=1).to_numpy()
+        X_test = df_test.drop("price", axis=1).to_numpy()
+
         # use scaler to normalise the features
         scaler = preprocessing.MinMaxScaler()
         
@@ -82,43 +79,49 @@ class MachineLearningPredictor():
         """
         Train and predict the product type from image information using a logistic regression model. 
         The whole process includes generating features (one hot vector), normalising data,
-        spliting the dataset into training and testing dataset, train a model with training dataset 
+        splitting the dataset into training and testing dataset, train a model with training dataset
         and predict the price for testing dataset with the model. It returns the model and classification report
 
         Returns:
             Tuple[LogisticRegression, float]: Logistic regression model and classification report in dictionary format
         """
-        
-        # use label encoder to encode the type of the product
-        le = preprocessing.LabelEncoder().fit(self.df_product["root_category"].unique())
-        category = le.transform(self.df_product["root_category"].tolist())
-        
-        self.df_product["category"] = category
-        
+
+        data_generator = DatasetGenerator(self.df_product, self.df_image)
+        df_image_product = data_generator.generate_image_product_dataset()
+
+        # print(df_image_product.columns)
+
         # apply flattening to image data, making the data as features
-        image_data = self.df_image["image_data"].apply(lambda x : x.flatten()).tolist()
+        image_data = df_image_product["image_pixel_data"].apply(lambda x: x.flatten()).tolist()
         image_data = np.asarray(image_data)
         
         df_image_pixel = pd.DataFrame(image_data, columns=[f"pixel_{i}" for i in range(image_data.shape[1])])
         
         # use one hot encoding to encode the image mode
-        image_mode = pd.get_dummies(self.df_image["image_mode"], prefix="image_mode", drop_first=True)
+        image_mode = pd.get_dummies(df_image_product["image_mode"], prefix="image_mode", drop_first=True)
         
-        df_image_data = self.df_image.join(image_mode)
-        df_image_data = pd.merge(df_image_data, self.df_product, how="inner", left_on="product_id", right_on="id")
+        df_image_product = df_image_product.join(image_mode)
+
+        # use label encoder to encode the type of the product
+        le = preprocessing.LabelEncoder().fit(df_image_product["root_category"].unique())
+        category = le.transform(df_image_product["root_category"].tolist())
+
+        df_image_product['category'] = category
         
         # include features with numeric value only 
-        df_image_log = df_image_data[["image_width", "image_height", "image_mode_P", "image_mode_RGB", "image_mode_RGBA"]]
+        df_image_log = df_image_product[["image_width", "image_height", "image_mode_P",
+                                         "image_mode_RGB", "image_mode_RGBA", 'category']]
         df_image_log = df_image_log.join(df_image_pixel)
         
-        # select category as prediction target
-        df_category = df_image_data[["category"]]
-        image_categories = df_category["category"].tolist()
-        
         # split the training and testing dataset
-        X_train, X_test, y_train, y_test = train_test_split(df_image_log, image_categories,
-                                                            test_size=self.test_size, random_state=self.random_state)
-        
+        df_train, _, df_test = data_generator.split_dataset(df_image_log)
+
+        X_train = df_train.drop("category", axis=1).to_numpy()
+        X_test = df_test.drop("category", axis=1).to_numpy()
+
+        y_train = df_train.category.tolist()
+        y_test = df_test.category.tolist()
+
         # use scaler to normalise the features
         scaler = preprocessing.MinMaxScaler()
         

@@ -6,7 +6,7 @@ from typing import Tuple
 from dataclasses import dataclass
 
 @dataclass
-class DataVisializer():
+class DataVisializer:
     """Visualisation the data
 
     Args:

@@ -1,8 +1,9 @@
-from data_preparation.download_data import DataDownloader
-from data_preparation.visualize_data import DataVisializer
-from data_preparation.clean_images import ImageCleaner
-from data_preparation.clean_tabular import TablularDataCleaner
-from ml_approach.ml_method import MachineLearningPredictor
+from classes.data_preparation.download_data import DataDownloader
+from classes.data_preparation.visualize_data import DataVisializer
+from classes.data_preparation.clean_images import ImageCleaner
+from classes.data_preparation.clean_tabular import TablularDataCleaner
+from classes.ml_approach.ml_method import MachineLearningPredictor
+
 
 def main():
     downloader = DataDownloader()
@@ -16,7 +17,7 @@ def main():
     product_cleaner = TablularDataCleaner(df_product, df_image_clean)
     df_product_clean = product_cleaner.get_clean_product_data()
     
-    visualiser = DataVisializer(df_product_clean, df_image_clean) 
+    visualiser = DataVisializer(df_product_clean, df_image_clean)
     visualiser.visualise_data()
     
     ml_model_predictor = MachineLearningPredictor(df_product_clean, df_image_clean)

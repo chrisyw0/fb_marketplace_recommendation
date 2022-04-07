@@ -13,7 +13,7 @@ from zipfile import ZipFile
 from dataclasses import dataclass
 
 @dataclass
-class DataDownloader():
+class DataDownloader:
     """Data Downloader
     
     Downlaod images and tabular data from AWS or reload data from cached

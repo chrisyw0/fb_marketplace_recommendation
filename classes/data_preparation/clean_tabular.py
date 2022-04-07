@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class TablularDataCleaner():
+class TablularDataCleaner:
     """Clean tabular data
     
     Args:
