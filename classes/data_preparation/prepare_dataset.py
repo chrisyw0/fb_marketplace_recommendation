@@ -5,6 +5,19 @@ from typing import Tuple
 
 @dataclass
 class DatasetGenerator:
+    """
+    Generate required dataset and manage data split
+
+    Args:
+        df_product (pd.DataFrame): Cleaned product dataframe
+        df_image (pd.DataFrame): Cleaned product dataframe
+
+        random_state (int, optional): Random state of train and test split. Defaults to 42.
+        val_size (float, optional):  Proportion of validation dataset. Defaults to 0.2 (20%).
+        test_size (float, optional): Proportion of testing dataset. Defaults to 0.2 (20%).
+
+    """
+
     df_product: pd.DataFrame
     df_image: pd.DataFrame
 
@@ -13,6 +26,12 @@ class DatasetGenerator:
     test_size: float = 0.2
 
     def generate_image_product_dataset(self) -> pd.DataFrame:
+        """
+        Generate an image and product set with joined features
+        Returns:
+            pd.DataFrame: The joined dataset in panda dataframe format
+
+        """
         df_image_product = pd.merge(self.df_image,
                                     self.df_product,
                                     how="inner",
@@ -22,6 +41,13 @@ class DatasetGenerator:
         return df_image_product
 
     def generate_product_data(self) -> pd.DataFrame:
+        """
+        Generate a product data for price prediction.
+
+        Returns:
+            pd.DataFrame: Dataset with required features for price prediction
+
+        """
         # One hot encoding of the root category
         categories = pd.get_dummies(self.df_product["root_category"], prefix="category", drop_first=True)
         df_product_reg = self.df_product.join(categories)
@@ -40,6 +66,18 @@ class DatasetGenerator:
         pass
 
     def split_dataset(self, dataset: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """
+        Split dataset into training, validation and testing dataset.
+
+        Args:
+            dataset (pd.DataFrame): The dataset to be split
+
+        Returns:
+            Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: Training, validation and testing dataset
+
+        """
+
+        # set a random_state number to make sure we can reproduce our result
         random.seed(self.random_state)
 
         # assign index for training, validation and testing dataset

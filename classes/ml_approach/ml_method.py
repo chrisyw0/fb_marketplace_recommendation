@@ -14,18 +14,10 @@ class MachineLearningPredictor:
     Args:
         df_product (pd.DataFrame): Product dataframe with additional features generated
         df_image (pd.DataFrame): Image dataframe with additional features generated
-        random_state (int, optional): Random state of train and test split. Defaults to 42.
-        val_size (float, optional):  Proportion of validation dataset. Defaults to 0.2 (20%).
-        test_size (float, optional): Proportion of testing dataset. Defaults to 0.2 (20%).
-    
     """
     
     df_product: pd.DataFrame
     df_image: pd.DataFrame
-    
-    random_state: int = 42
-    test_size: float = 0.2
-    val_size: float = 0.2
 
     def predict_price(self) -> Tuple[LinearRegression, float]:
         """
