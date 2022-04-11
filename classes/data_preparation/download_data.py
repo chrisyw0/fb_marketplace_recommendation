@@ -28,7 +28,7 @@ class DataDownloader:
     
     def read_cloud_config(self) -> dict:
         """
-        Helper function to read RDS config. For environmental varaibles, 
+        Helper function to read RDS config. For environmental variables,
         use ${ENV_NAME} where ENV_NAME is the name of environmental variable.
 
         Returns:
@@ -36,6 +36,7 @@ class DataDownloader:
 
         """
         env_pattern = re.compile(r".*?\${(.*?)}.*?")
+
         def env_constructor(loader, node):
             value = loader.construct_scalar(node)
             for group in env_pattern.findall(value):
@@ -74,7 +75,7 @@ class DataDownloader:
         except FileNotFoundError:
             print("DataFrame not found, download from DB")
             
-            config = self.read_cloud_config(self.config_file)["aws-postgresql"]
+            config = self.read_cloud_config()["aws-postgresql"]
 
             db_type = config["dbtype"]
             db_api = config["dbapi"]
@@ -112,7 +113,7 @@ class DataDownloader:
         
         os.makedirs(self.cached_path, exist_ok=True)
 
-        image_url = self.read_cloud_config(self.config_file)["image-zip"]["url"]
+        image_url = self.read_cloud_config()["image-zip"]["url"]
         
         resp = requests.get(image_url, stream=True)
         total = int(resp.headers.get('content-length', 0))
