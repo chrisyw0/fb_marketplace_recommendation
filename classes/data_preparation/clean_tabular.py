@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class TablularDataCleaner:
+class TabularDataCleaner:
     """Clean tabular data
     
     Args:
@@ -160,7 +160,7 @@ class TablularDataCleaner:
             try:
                 result = []
 
-                for _, image_data in df_this_image["image_data"].iteritems():
+                for _, image_data in df_this_image["image_pixel_data"].iteritems():
                     result.append(image_data)
 
                 return result, len(result)
