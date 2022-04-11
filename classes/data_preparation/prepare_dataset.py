@@ -57,7 +57,9 @@ class DatasetGenerator:
             "id", "product_name", "category", "product_description", "product_name_description", \
             "location", "url", "page_id", "create_time", \
             "currency", "product_name_tokens", "product_description_tokens", "product_name_description_tokens", \
-            "product_name_description_word_count", "image_data", "root_category", "sub_category"], axis=1)
+            "product_name_description_word_count", "image_data", "root_category", "sub_category"],
+            axis=1, errors='ignore'
+        )
 
         return df_product_reg
 
