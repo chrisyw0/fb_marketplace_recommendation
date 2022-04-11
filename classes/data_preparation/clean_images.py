@@ -1,5 +1,6 @@
 from typing import Tuple, Optional
 import PIL
+from PIL import ImageOps
 import numpy as np
 import pandas as pd
 import pickle
@@ -71,7 +72,7 @@ class ImageCleaner:
                     image = image.convert("RGB")
 
                 image.thumbnail(size, PIL.Image.LANCZOS)
-                image = PIL.ImageOps.pad(image, size=size, color=0, centering=(0.5, 0.5))
+                image = ImageOps.pad(image, size=size, color=0, centering=(0.5, 0.5))
 
                 return np.asarray(image), image_size[0], image_size[1], image_size[0]/image_size[1], image_mode
 
