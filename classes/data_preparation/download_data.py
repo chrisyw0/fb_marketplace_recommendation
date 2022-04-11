@@ -136,4 +136,4 @@ class DataDownloader:
         with ZipFile(self.cached_path+file_name, 'r') as zipObject:
             zipObject.extractall(self.cached_path)
             
-        print(f"{len(fnmatch.filter(os.listdir(image_path), '*.jpg'))} images downloaded and unzipped to folder {cached_path}")
+        print(f"{len(fnmatch.filter(os.listdir(image_path), '*.jpg'))} images downloaded and unzipped to folder {self.cached_path}")
