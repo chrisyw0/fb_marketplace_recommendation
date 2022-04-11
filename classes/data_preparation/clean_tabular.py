@@ -221,7 +221,7 @@ class TabularDataCleaner:
             df_product_clean = self.create_product_data()
 
             # remove records which has no name and description
-            df_product_clean = df_product_clean[~((df_product_clean['product_name'] == "N/A") & (df_product['product_description'] == "N/A"))]
+            df_product_clean = df_product_clean[~((df_product_clean['product_name'] == "N/A") & (df_product_clean['product_description'] == "N/A"))]
             
             # remove records with no price or price greater than 1000
             df_product_clean = df_product_clean[df_product_clean['price'] <= 1000]
