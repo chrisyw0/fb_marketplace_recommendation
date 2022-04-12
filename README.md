@@ -32,6 +32,7 @@ This program use environment variables to store credentials, please set the envi
 - scikit-learn
 - tensorflow
 - keras
+- tensorboard
 
 ## Milestone 1
 
@@ -78,6 +79,21 @@ To build our CNN model for category prediction, we use RestNet50 as the base mod
 
 We use the same training, validation and testing dataset as the machine model. The overall accuracy is about 55%, much better than logistic regression.  
 
+The logs of model training will be available in ./data/logs, once the process completed, we can use the following command to upload the result into a Tensorboard.
+
+```commandline
+tensorboard dev upload --logdir ./data/logs \
+  --name "RestNetV50 based CNN image classification model" \
+  --description "Training results for CNN models" \
+  --one_shot
+```
+
+Then we can navigate to link showing on the screen and see the plots of your result.
+
+Here is the result for this model:
+https://tensorboard.dev/experiment/nNDKZuwxSzWbwY0CENfeAw/#histograms&run=train
+
+![CNN Model Accuray](accuracy.png)
 
 ## Reference
 

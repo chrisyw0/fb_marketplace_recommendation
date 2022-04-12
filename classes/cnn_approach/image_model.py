@@ -9,6 +9,7 @@ import numpy as np
 from typing import Tuple, List
 from sklearn.metrics import classification_report
 from ..data_preparation.prepare_dataset import DatasetGenerator
+from tensorboard.plugins.hparams import api as hp
 
 
 @dataclass
@@ -33,6 +34,7 @@ class ImageModel:
         df_image (pd.DataFrame): Image dataframe
         df_product (pd.DataFrame): Product dataframe
         image_path (str, optional): Path to cache the image dataframe. Defaults to "./data/images/".
+        log_path (str, optional): Path to cache the training logs. Defaults to "./data/logs/".
         batch_size (int, optional): Batch size of the model Defaults to 32.
         input_shape (Tuple[int, int, int], Optional): Size of the image inputting to the model.
                                                       If image channel = 'RGB', the value will be
@@ -47,9 +49,11 @@ class ImageModel:
     df_image: pd.DataFrame
 
     image_path: str = "./data/images/"
+    log_path: str = "./data/logs/"
+
     batch_size = 32
     input_shape: Tuple[int, int, int] = (256, 256, 3)
-    dropout: float = 0.2
+    dropout: float = 0.3
     learning_rate: float = 0.01
 
     epoch: int = 10
@@ -176,7 +180,7 @@ class ImageModel:
         feature_batch_average = global_average_layer(feature_batch)
 
         prediction_layer = tf.keras.layers.Dense(self.num_class, activation="softmax")
-        prediction_batch = prediction_layer(feature_batch_average)
+        _ = prediction_layer(feature_batch_average)
 
         data_augmentation = tf.keras.Sequential([
             tf.keras.layers.RandomFlip('horizontal'),
@@ -203,12 +207,23 @@ class ImageModel:
         """
         Train a model with the training data. In each epoch, it will print out the loss and accuracy
         of the training and validation dataset in 'history' attribute. The records will be used for
-        illustrating the performance of the model in later stage.
+        illustrating the performance of the model in later stage. There are two callbacks called tensorboard callback
+        and hyperparameter call back, it will create logs during the training process, and these logs can then be
+        uploaded to TensorBoard.dev
 
         """
+
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(
+            log_dir=self.log_path, histogram_freq=1)
+
+        hparams_callback = hp.KerasCallback(self.log_path, {
+            'dropout': self.dropout
+        })
+
         self.history = self.model.fit(self.ds_train,
                                       epochs=self.epoch,
-                                      validation_data=self.ds_val)
+                                      validation_data=self.ds_val,
+                                      callbacks=[tensorboard_callback, hparams_callback])
 
     def evaluate_model(self, dataset: tf.data.Dataset = None) -> Tuple[float, float]:
         """
