@@ -91,7 +91,7 @@ tensorboard dev upload --logdir ./data/logs \
 Then we can navigate to link showing on the screen and see the plots of your result.
 
 Here is the result for this model:
-https://tensorboard.dev/experiment/nNDKZuwxSzWbwY0CENfeAw/#histograms&run=train
+https://tensorboard.dev/experiment/nNDKZuwxSzWbwY0CENfeAw/#scalars&run=train
 
 ![CNN Model Accuray](accuracy.png)
 
