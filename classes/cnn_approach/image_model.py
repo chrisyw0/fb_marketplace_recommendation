@@ -179,7 +179,7 @@ class ImageModel:
         global_average_layer = tf.keras.layers.GlobalAveragePooling2D()
         feature_batch_average = global_average_layer(feature_batch)
         
-        dense_layer = tf.keras.layers.Dense(128, activation="relu")
+        dense_layer = tf.keras.layers.Dense(256, activation="relu")
         dense_patch = dense_layer(feature_batch_average)
 
         prediction_layer = tf.keras.layers.Dense(self.num_class, activation="softmax")
