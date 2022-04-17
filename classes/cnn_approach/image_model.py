@@ -53,10 +53,10 @@ class ImageModel:
 
     batch_size = 32
     input_shape: Tuple[int, int, int] = (256, 256, 3)
-    dropout: float = 0.5
+    dropout: float = 0.6
     learning_rate: float = 0.01
 
-    epoch: int = 10
+    epoch: int = 15
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
