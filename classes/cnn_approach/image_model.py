@@ -53,7 +53,7 @@ class ImageModel:
 
     batch_size = 32
     input_shape: Tuple[int, int, int] = (256, 256, 3)
-    dropout: float = 0.3
+    dropout: float = 0.5
     learning_rate: float = 0.01
 
     epoch: int = 10
@@ -178,9 +178,12 @@ class ImageModel:
 
         global_average_layer = tf.keras.layers.GlobalAveragePooling2D()
         feature_batch_average = global_average_layer(feature_batch)
+        
+        dense_layer = tf.keras.layers.Dense(128, activation="relu")
+        dense_patch = dense_layer(feature_batch_average)
 
         prediction_layer = tf.keras.layers.Dense(self.num_class, activation="softmax")
-        _ = prediction_layer(feature_batch_average)
+        _ = prediction_layer(dense_patch)
 
         data_augmentation = tf.keras.Sequential([
             tf.keras.layers.RandomFlip('horizontal'),
@@ -193,6 +196,7 @@ class ImageModel:
         x = base_model(x, training=False)
         x = global_average_layer(x)
         x = tf.keras.layers.Dropout(self.dropout)(x)
+        x = dense_layer(x)
         outputs = prediction_layer(x)
 
         # combine the model and print model summary
