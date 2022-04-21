@@ -75,7 +75,7 @@ The average accuracy for the model is around 0.14
 
 We should never satisfy with machine learning models which gives only 14% accuracy. One possible solution is to use deep learning model. For deep leaning mode, it usually requires much more training data than machine learning model to achieve a certain level of performance. However, we only have a dataset with about 12000 images with 13 classes, which means each class has less than 1000 images. Luckily, we can use technique like transfer learning. There exists model that is well-trained with a huge dataset, which has the ability to capture the useful features in the images, and generate embeddings for the final prediction. 
 
-To build our CNN model for category prediction, we use RestNet50 as the base model, together with data processing layer, data augmentation layer, global averaging layer, dropout layer and finally prediction layer. The input shape of the image is (256, 256, 3) and the output shape of the model is 13, which equals to the number of unique class in the dataset.   
+To build our CNN model for category prediction, we use RestNet50 as the base model, together with data processing layer, data augmentation layer, global averaging layer, dropout layer and finally prediction layer. The input shape of the image is (256, 256, 3) and the output shape of the model is 13, which equals to the number of unique class in the dataset. 
 
 We use the same training, validation and testing dataset as the machine model. The overall accuracy is about 55%, much better than logistic regression.  
 
@@ -91,7 +91,7 @@ tensorboard dev upload --logdir ./data/logs \
 Then we can navigate to link showing on the screen and see the plots of your result.
 
 Here is the result for this model:
-https://tensorboard.dev/experiment/nNDKZuwxSzWbwY0CENfeAw/#histograms&run=train
+https://tensorboard.dev/experiment/Z8eNrCbcQnCoW5m1Xd1WeA/#scalars
 
 ![CNN Model Accuray](accuracy.png)
 

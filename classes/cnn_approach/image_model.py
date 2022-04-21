@@ -1,11 +1,11 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import os
 import tempfile
 import shutil
 import pandas as pd
+import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
-from cnn_model import CNNBaseModel
 from typing import Tuple, List
 from sklearn.metrics import classification_report
 from ..data_preparation.prepare_dataset import DatasetGenerator
@@ -13,52 +13,50 @@ from tensorboard.plugins.hparams import api as hp
 
 
 @dataclass
-class ImageModel(CNNBaseModel):
+class ImageModel:
     """
-    A deep learning model predicting product category from its image.
+    A deep learning model predicting product category of an image. The correct flow of training and
+    testing the model is as follows:
+
+    1. prepare_data - Input product and image data and get the training, validation and testing dataset.
+    2. create_model - Create a deep learning model according to the input data shape and other configuration
+    3. train_model - Train the model with training dataset, and validate it with validation dataset.
+    4. evaluate_model/predict_model - Test the model with the testing dataset. evaluate_model will only get the
+                                      overall accuracy and loss while predict_model will return a classification
+                                      report and predicted labels for the testing dataset.
+    5. visualise_performance - Plot the accuracy and loss in each epoch for training and validation dataset
+    6. save_model - Save the weight for the model for later use.
+    7. clean_up - remove the folders storing the images.
+
+    TODO: reuse the model
 
     Args:
         df_image (pd.DataFrame): Image dataframe
         df_product (pd.DataFrame): Product dataframe
         image_path (str, optional): Path to cache the image dataframe. Defaults to "./data/images/".
-        model_path (str, optional): Path to cache the weight of the image model. Defaults to "./model/image_model/".
-        log_path (str, optional): Path to cache the training logs. Defaults to "./logs/image_model/".
-        batch_size (int, optional): Batch size of the model. Defaults to 32.
+        log_path (str, optional): Path to cache the training logs. Defaults to "./data/logs/".
+        batch_size (int, optional): Batch size of the model Defaults to 32.
         input_shape (Tuple[int, int, int], Optional): Size of the image inputting to the model.
                                                       If image channel = 'RGB', the value will be
-                                                      (width, height, 3) i.e. 3 channels.
+                                                      (width, height, 3) i.e. 3 channels
                                                       Defaults to (256, 256, 3)
-        dropout (float, optional): Dropout rate of the model. Defaults to 0.2.
-        learning_rate (float, optional): Learning rate of the model. Defaults to 0.01.
-        epoch (float, optional): Epoch of the model. Defaults to 20.
-        metrics (List[str], optional):  list of metrics using for model evaluation. Defaults to ["accuracy"].
-        train_tmp_folder (str, optional) = folder path of storing training dataset, a temp folder will be created if
-                                           left None. Defaults to None.
-        val_tmp_folder: (str, optional) = folder path of storing validation dataset, a temp folder will be created if
-                                           left None. Defaults to None.
-        test_tmp_folder: (str, optional) = folder path of storing testing dataset, a temp folder will be created if
-                                           left None. Defaults to None.
+        dropout (float, optional): Dropout rate of the model Defaults to 0.2.
+        learning_rate (float, optional): Learning rate of the model Defaults to 0.01.
+        epoch (float, optional): Epoch of the model Defaults to 10.
 
     """
     df_product: pd.DataFrame
     df_image: pd.DataFrame
 
     image_path: str = "./data/images/"
-    log_path: str = "./logs/image_model/"
-    model_path: str = "./model/image_model/weights/"
+    log_path: str = "./data/logs/"
 
-    batch_size: int = 32
+    batch_size = 32
     input_shape: Tuple[int, int, int] = (256, 256, 3)
-    dropout: float = 0.2
-    learning_rate: float = 0.005
+    dropout: float = 0.3
+    learning_rate: float = 0.01
 
     epoch: int = 10
-
-    metrics: List[str] = field(default_factory=lambda: ["accuracy"])
-
-    train_tmp_folder: str = None
-    val_tmp_folder: str = None
-    test_tmp_folder: str = None
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
@@ -73,7 +71,7 @@ class ImageModel(CNNBaseModel):
 
         # split the dataset into training, validation and testing dataset
         # it uses the same function as the machine learning model so it could
-        # make comparison of the metrics
+        # make comparsion of the metrics
 
         generator = DatasetGenerator(self.df_product, self.df_image)
         df_image_data = generator.generate_image_product_dataset()
@@ -81,14 +79,9 @@ class ImageModel(CNNBaseModel):
         self.num_class = len(pd.unique(df_image_data["root_category"]))
 
         # create temp folders
-        if self.train_tmp_folder is None:
-            self.train_tmp_folder = tempfile.mkdtemp()
-
-        if self.val_tmp_folder is None:
-            self.val_tmp_folder = tempfile.mkdtemp()
-
-        if self.test_tmp_folder is None:
-            self.test_tmp_folder = tempfile.mkdtemp()
+        self.train_tmp_folder = tempfile.mkdtemp()
+        self.val_tmp_folder = tempfile.mkdtemp()
+        self.test_tmp_folder = tempfile.mkdtemp()
 
         print(f"Training data path = {self.train_tmp_folder}")
         print(f"Validation data path = {self.val_tmp_folder}")
@@ -149,8 +142,6 @@ class ImageModel(CNNBaseModel):
             shuffle=False
         )
 
-        self.classes = self.ds_train.class_names
-
         return df_image_data.iloc[train_idx], df_image_data.iloc[val_idx], df_image_data.iloc[test_idx]
 
     def create_model(self) -> None:
@@ -167,40 +158,9 @@ class ImageModel(CNNBaseModel):
 
         A compiled model will be saved in the model attributes as a result.
 
-        This method will also print the model summary. Here is the example:
-
-        Model: "model_3"
-        _________________________________________________________________
-        Layer (type)                Output Shape              Param #
-        =================================================================
-        input_8 (InputLayer)        [(None, 256, 256, 3)]     0
-
-        sequential_3 (Sequential)   (None, 256, 256, 3)       0
-
-        tf.math.truediv_3 (TFOpLamb  (None, 256, 256, 3)      0
-        da)
-
-        tf.math.subtract_3 (TFOpLam  (None, 256, 256, 3)      0
-        bda)
-
-        resnet50v2 (Functional)     (None, 8, 8, 2048)        23564800
-
-        global_average_pooling2d_3   (None, 2048)             0
-        (GlobalAveragePooling2D)
-
-        dropout_3 (Dropout)         (None, 2048)              0
-
-        dense_3 (Dense)             (None, 13)                26637
-
-        =================================================================
-        Total params: 23,591,437
-        Trainable params: 26,637
-        Non-trainable params: 23,564,800
-        _________________________________________________________________
-
         """
 
-        # pre-process the image to make each value [-1, 1]
+        # pre-process the image to make the each value [-1, 1]
         preprocess_input = tf.keras.applications.resnet_v2.preprocess_input
 
         # use the based model RestNet50 V2
@@ -219,8 +179,11 @@ class ImageModel(CNNBaseModel):
         global_average_layer = tf.keras.layers.GlobalAveragePooling2D()
         feature_batch_average = global_average_layer(feature_batch)
 
+        dense_layer = tf.keras.layers.Dense(256, activation="relu")
+        dense_patch = dense_layer(feature_batch_average)
+
         prediction_layer = tf.keras.layers.Dense(self.num_class, activation="softmax")
-        _ = prediction_layer(feature_batch_average)
+        _ = prediction_layer(dense_patch)
 
         data_augmentation = tf.keras.Sequential([
             tf.keras.layers.RandomFlip('horizontal'),
@@ -233,13 +196,14 @@ class ImageModel(CNNBaseModel):
         x = base_model(x, training=False)
         x = global_average_layer(x)
         x = tf.keras.layers.Dropout(self.dropout)(x)
+        x = dense_layer(x)
         outputs = prediction_layer(x)
 
         # combine the model and print model summary
         self.model = tf.keras.Model(inputs, outputs)
         self.model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=self.learning_rate / 10),
                            loss=tf.keras.losses.CategoricalCrossentropy(),
-                           metrics=self.metrics)
+                           metrics=['accuracy'])
 
         print(self.model.summary())
 
@@ -253,10 +217,6 @@ class ImageModel(CNNBaseModel):
 
         """
 
-        callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
-                                                    patience=5,
-                                                    restore_best_weights=True)
-
         tensorboard_callback = tf.keras.callbacks.TensorBoard(
             log_dir=self.log_path, histogram_freq=1)
 
@@ -267,67 +227,101 @@ class ImageModel(CNNBaseModel):
         self.history = self.model.fit(self.ds_train,
                                       epochs=self.epoch,
                                       validation_data=self.ds_val,
-                                      callbacks=[
-                                          callback,
-                                          tensorboard_callback,
-                                          hparams_callback
-                                      ])
+                                      callbacks=[tensorboard_callback, hparams_callback])
 
-    def evaluate_model(self) -> Tuple[float, float]:
+    def evaluate_model(self, dataset: tf.data.Dataset = None) -> Tuple[float, float]:
         """
-        Evaluate the model on the testing dataset.
+        Evaluate the model on a dataset. It returns only accuracy and loss to illustrate the overall performance
+        of the model. If you need the prediction labels and the classification report returned, use predict_model
+        instead.
+
+        Args:
+            dataset (Optional, tf.data.Dataset): Dataset to be used to evaluate the model. If None is input,
+                                                 the testing dataset set in prepare_data will be used. Defaults to
+                                                 None.
 
         Returns:
             Tuple[float, float]: Loss and accuracy of the model.
 
         """
+        if dataset == None:
+            dataset = self.ds_test
 
-        dataset = self.ds_test
+        loss, accuracy = self.model.evaluate(dataset)
+        return loss, accuracy
+
+    def predict_model(self, dataset: tf.data.Dataset = None) -> Tuple[List[int], classification_report]:
+        """
+        Predict with the model for records in a dataset. It returns a classification report and prediction result
+        of a given dataset. If you want to have accuracy and loss to evaluate the overall performance of the model,
+        use evaluate_model instead.
+
+        Args:
+            dataset (Optional, tf.data.Dataset): Dataset to be used to evaluate the model. If None is input,
+                                                 the testing dataset set in prepare_data will be used. Defaults to
+                                                 None.
+
+        Returns:
+            Tuple[List[int], classification_report]: List of labels and classification report
+
+        """
+        if dataset == None:
+            dataset = self.ds_test
+
         prediction = self.model.predict(dataset)
 
         y_true = [np.argmax(z) for z in np.concatenate([y for x, y in dataset])]
         y_pred = [np.argmax(x) for x in prediction]
 
-        report = classification_report(y_true, y_pred, target_names=self.classes)
+        report = classification_report(y_true, y_pred)
         print(report)
 
-        loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+        return y_pred, report
 
-        y_true_one_hot = np.concatenate([y for x, y in dataset])
-
-        loss = loss_fn(y_true_one_hot, prediction)
-        accuracy = sum([y_true[i] == y_pred[i] for i in range(len(y_true))]) / len(y_true)
-
-        print(f"Evaluation on model accuracy {accuracy}, loss {loss}")
-
-        return loss, accuracy
-
-    def predict_model(self, data: Any) -> List[int]:
+    def load_model(self, path: str = "./data/model/"):
         """
-        Predict with the model for records in the testing dataset.
-
+        Create a model with saved weight
         Args:
-            data (Any):
-
-        Returns:
-            List[int]: List of labels
+            path (str, Optional): Path for the weights, Defaults to ./data/model/
 
         """
 
-        dataset = data
-        prediction = self.model.predict(dataset)
+        self.create_model()
+        self.model.load_weights(f"{path}model.ckpt")
 
-        y_pred = [np.argmax(x) for x in prediction]
+    def save_model(self, path: str = "./data/model/"):
+        """
+        Save weight of the trained model.
+        Args:
+            path (str, Optional): Path for the weights, Defaults to ./data/model/
 
-        return y_pred
+        """
+
+        self.model.save_weights(f"{path}model.ckpt")
+
+    def visualise_performance(self) -> None:
+        """
+        Visual the performance of the model. It will plot loss and accuracy for training and validation dataset
+        in each epoch.
+
+        """
+        # plot the loss
+        plt.plot(self.history.history['loss'], label='train loss')
+        plt.plot(self.history.history['val_loss'], label='val loss')
+        plt.legend()
+        plt.show()
+
+        # plot the accuracy
+        plt.plot(self.history.history['accuracy'], label='train acc')
+        plt.plot(self.history.history['val_accuracy'], label='val acc')
+        plt.legend()
+        plt.show()
 
     def clean_up(self) -> None:
         """
-        Remove the folders storing the images and clear the tensorflow backend session.
+        Remove the folders storing the images.
         """
 
         shutil.rmtree(self.train_tmp_folder)
         shutil.rmtree(self.val_tmp_folder)
         shutil.rmtree(self.test_tmp_folder)
-
-        super().clean_up()
