@@ -4,6 +4,7 @@ from classes.data_preparation.clean_images import ImageCleaner
 from classes.data_preparation.clean_tabular import TabularDataCleaner
 from classes.ml_approach.ml_method import MachineLearningPredictor
 from classes.cnn_approach.image_model import ImageModel
+from classes.cnn_approach.text_model import TextModel
 
 def main():
 
@@ -29,16 +30,14 @@ def main():
     ml_model_predictor.predict_price()
     ml_model_predictor.predict_product_type()
 
-    # milestone 3: Create CNN model for image category classification
-    model = ImageModel(df_product=df_product_clean, df_image=df_image_clean)
-    model.prepare_data()
+    # milestone 3: Create a image CNN model for category classification
+    image_model = ImageModel(df_product=df_product_clean, df_image=df_image_clean)
+    image_model.process()
 
-    model.create_model()
-    model.train_model()
-    model.predict_model()
-    model.visualise_performance()
-    model.save_model()
-    model.clean_up()
+    # milestone 4: Create a text CNN model for category classification
+    text_model = TextModel(df_product=df_product_clean, df_image=df_image_clean)
+    text_model.process()
+
 
 if __name__ == "__main__":
     main()
