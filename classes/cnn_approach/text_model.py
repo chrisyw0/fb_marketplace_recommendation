@@ -31,7 +31,7 @@ class TextModel(CNNBaseModel):
                                                   Defaults to None, which means no pretrained model is used.
 
         log_path (str, optional): Path to cache the training logs. Defaults to "./logs/text_model/".
-        model_path (str, optional): Path to cache the weight of the image model. Defaults to "./model/images_model/".
+        model_path (str, optional): Path to cache the weight of the image model. Defaults to "./model/text_model/weights/".
 
         batch_size (int, optional): Batch size of the model. Defaults to 32.
 
@@ -495,9 +495,3 @@ class TextModel(CNNBaseModel):
         y_pred = [np.argmax(x) for x in prediction]
 
         return y_pred
-
-    def clean_up(self) -> None:
-        """
-        Clear the tensorflow backend session
-        """
-        super().clean_up()

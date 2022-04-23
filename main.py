@@ -6,8 +6,8 @@ from classes.ml_approach.ml_method import MachineLearningPredictor
 from classes.cnn_approach.image_model import ImageModel
 from classes.cnn_approach.text_model import TextModel
 
-def main():
 
+def main():
     # milestone 1: Download and clean the data
     downloader = DataDownloader()
     

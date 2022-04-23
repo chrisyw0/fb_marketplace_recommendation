@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 import tempfile
 import shutil
@@ -6,57 +6,52 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
-from typing import Tuple, List
+from typing import Tuple, List, Any
 from sklearn.metrics import classification_report
 from ..data_preparation.prepare_dataset import DatasetGenerator
+from cnn_model import CNNBaseModel
 from tensorboard.plugins.hparams import api as hp
 
 
 @dataclass
-class ImageModel:
+class ImageModel(CNNBaseModel):
     """
-    A deep learning model predicting product category of an image. The correct flow of training and
-    testing the model is as follows:
-
-    1. prepare_data - Input product and image data and get the training, validation and testing dataset.
-    2. create_model - Create a deep learning model according to the input data shape and other configuration
-    3. train_model - Train the model with training dataset, and validate it with validation dataset.
-    4. evaluate_model/predict_model - Test the model with the testing dataset. evaluate_model will only get the
-                                      overall accuracy and loss while predict_model will return a classification
-                                      report and predicted labels for the testing dataset.
-    5. visualise_performance - Plot the accuracy and loss in each epoch for training and validation dataset
-    6. save_model - Save the weight for the model for later use.
-    7. clean_up - remove the folders storing the images.
-
-    TODO: reuse the model
+    A deep learning model predicting product category of an image.
 
     Args:
         df_image (pd.DataFrame): Image dataframe
         df_product (pd.DataFrame): Product dataframe
         image_path (str, optional): Path to cache the image dataframe. Defaults to "./data/images/".
-        log_path (str, optional): Path to cache the training logs. Defaults to "./data/logs/".
+        log_path (str, optional): Path to cache the training logs. Defaults to "./logs/image_model/".
+        model_path (str, optional): Path to cache the weight of the image model. Defaults to "./model/image_model/weights/".
         batch_size (int, optional): Batch size of the model Defaults to 32.
         input_shape (Tuple[int, int, int], Optional): Size of the image inputting to the model.
                                                       If image channel = 'RGB', the value will be
                                                       (width, height, 3) i.e. 3 channels
                                                       Defaults to (256, 256, 3)
-        dropout (float, optional): Dropout rate of the model Defaults to 0.2.
+        dropout_conv (float, optional): Dropout rate of the convolution layer of the model. Defaults to 0.5.
+        dropout_pred (float, optional): Dropout rate of the layer before the prediction layer of the model.
+                                              Defaults to 0.3.
         learning_rate (float, optional): Learning rate of the model Defaults to 0.01.
-        epoch (float, optional): Epoch of the model Defaults to 10.
+        epoch (float, optional): Epoch of the model Defaults to 15.
+        metrics (List[str], optional):  list of metrics using for model evaluation. Defaults to ["accuracy"].
 
     """
     df_product: pd.DataFrame
     df_image: pd.DataFrame
 
     image_path: str = "./data/images/"
-    log_path: str = "./data/logs/"
+    log_path: str = "./logs/image_model/"
+    model_path: str = "./model/image_model/weights/"
 
     batch_size = 32
     input_shape: Tuple[int, int, int] = (256, 256, 3)
-    dropout: float = 0.3
+    dropout_conv: float = 0.5
+    dropout_pred: float = 0.3
     learning_rate: float = 0.01
 
     epoch: int = 15
+    metrics: List[str] = field(default_factory=lambda: ["accuracy"])
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
@@ -142,6 +137,8 @@ class ImageModel:
             shuffle=False
         )
 
+        self.classes = self.ds_train.class_names
+
         return df_image_data.iloc[train_idx], df_image_data.iloc[val_idx], df_image_data.iloc[test_idx]
 
     def create_model(self) -> None:
@@ -157,6 +154,40 @@ class ImageModel:
         as the evaluation metric.
 
         A compiled model will be saved in the model attributes as a result.
+
+        This function will print out the summary of the model. Here is an example.
+
+        Model: "model_3"
+        _________________________________________________________________
+        Layer (type)                Output Shape              Param #
+        =================================================================
+        input_16 (InputLayer)       [(None, 256, 256, 3)]     0
+
+        sequential_7 (Sequential)   (None, 256, 256, 3)       0
+
+        tf.math.truediv_7 (TFOpLamb  (None, 256, 256, 3)      0
+        da)
+
+        tf.math.subtract_7 (TFOpLam  (None, 256, 256, 3)      0
+        bda)
+
+        resnet50v2 (Functional)     (None, 8, 8, 2048)        23564800
+
+        global_average_pooling2d_7   (None, 2048)             0
+        (GlobalAveragePooling2D)
+
+        dropout_9 (Dropout)         (None, 2048)              0
+
+        dense_12 (Dense)            (None, 256)               524544
+
+        dropout_10 (Dropout)        (None, 256)               0
+
+        dense_13 (Dense)            (None, 13)                3341
+
+        =================================================================
+        Total params: 24,092,685
+        Trainable params: 527,885
+        Non-trainable params: 23,564,800
 
         """
 
@@ -195,8 +226,9 @@ class ImageModel:
         x = preprocess_input(x)
         x = base_model(x, training=False)
         x = global_average_layer(x)
-        x = tf.keras.layers.Dropout(self.dropout)(x)
+        x = tf.keras.layers.Dropout(self.dropout_conv)(x)
         x = dense_layer(x)
+        x = tf.keras.layers.Dropout(self.dropout_pred)(x)
         outputs = prediction_layer(x)
 
         # combine the model and print model summary
@@ -211,111 +243,81 @@ class ImageModel:
         """
         Train a model with the training data. In each epoch, it will print out the loss and accuracy
         of the training and validation dataset in 'history' attribute. The records will be used for
-        illustrating the performance of the model in later stage. There are two callbacks called tensorboard callback
-        and hyperparameter call back, it will create logs during the training process, and these logs can then be
-        uploaded to TensorBoard.dev
+        illustrating the performance of the model in later stage. There are 3 callbacks called early_stop_callback,
+        tensorboard callback and hyperparameter callback: early_stop_callback will detect whether the model is overfitted
+        and stop training while tensorboard callback and hyperparameter callback will create logs during the training
+        process, and these logs can then be uploaded to TensorBoard.dev.
 
         """
+
+        print("Start training")
+
+        early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
+                                                               patience=5,
+                                                               restore_best_weights=True)
 
         tensorboard_callback = tf.keras.callbacks.TensorBoard(
             log_dir=self.log_path, histogram_freq=1)
 
         hparams_callback = hp.KerasCallback(self.log_path, {
-            'dropout': self.dropout
+            'dropout_conv': self.dropout_conv,
+            'dropout_pred': self.dropout_pred
         })
 
         self.history = self.model.fit(self.ds_train,
                                       epochs=self.epoch,
                                       validation_data=self.ds_val,
-                                      callbacks=[tensorboard_callback, hparams_callback])
+                                      callbacks=[early_stop_callback,
+                                                 tensorboard_callback,
+                                                 hparams_callback])
 
-    def evaluate_model(self, dataset: tf.data.Dataset = None) -> Tuple[float, float]:
+    def evaluate_model(self) -> Tuple[float, float]:
         """
-        Evaluate the model on a dataset. It returns only accuracy and loss to illustrate the overall performance
-        of the model. If you need the prediction labels and the classification report returned, use predict_model
-        instead.
-
-        Args:
-            dataset (Optional, tf.data.Dataset): Dataset to be used to evaluate the model. If None is input,
-                                                 the testing dataset set in prepare_data will be used. Defaults to
-                                                 None.
+        Evaluate the model on the testing dataset. It returns only accuracy and loss to illustrate
+        the overall performance of the model. If you need the prediction labels and the classification
+        report returned, use predict_model instead.
 
         Returns:
             Tuple[float, float]: Loss and accuracy of the model.
 
         """
-        if dataset == None:
-            dataset = self.ds_test
 
-        loss, accuracy = self.model.evaluate(dataset)
-        return loss, accuracy
+        prediction = self.model.predict(self.ds_test,
+                                        batch_size=self.batch_size)
 
-    def predict_model(self, dataset: tf.data.Dataset = None) -> Tuple[List[int], classification_report]:
-        """
-        Predict with the model for records in a dataset. It returns a classification report and prediction result
-        of a given dataset. If you want to have accuracy and loss to evaluate the overall performance of the model,
-        use evaluate_model instead.
+        y_test = np.concatenate([y for x, y in self.ds_test])
 
-        Args:
-            dataset (Optional, tf.data.Dataset): Dataset to be used to evaluate the model. If None is input,
-                                                 the testing dataset set in prepare_data will be used. Defaults to
-                                                 None.
-
-        Returns:
-            Tuple[List[int], classification_report]: List of labels and classification report
-
-        """
-        if dataset == None:
-            dataset = self.ds_test
-
-        prediction = self.model.predict(dataset)
-
-        y_true = [np.argmax(z) for z in np.concatenate([y for x, y in dataset])]
+        y_true = [np.argmax(z) for z in y_test]
         y_pred = [np.argmax(x) for x in prediction]
 
-        report = classification_report(y_true, y_pred)
+        report = classification_report(y_true, y_pred, target_names=self.classes)
         print(report)
 
-        return y_pred, report
+        loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+        loss = loss_fn(y_test, prediction)
 
-    def load_model(self, path: str = "./data/model/"):
+        accuracy = sum([y_true[i] == y_pred[i] for i in range(len(y_true))]) / len(y_true)
+
+        print(f"Evaluation on model accuracy {accuracy}, loss {loss}")
+
+        return loss, accuracy
+
+    def predict_model(self, dataset: Any) -> List[int]:
         """
-        Create a model with saved weight
+        Predict with the model for records in a dataset.
+
         Args:
-            path (str, Optional): Path for the weights, Defaults to ./data/model/
+            dataset (Optional, Any): Dataset contains images.
+
+        Returns:
+            List[int]: List of labels.
 
         """
 
-        self.create_model()
-        self.model.load_weights(f"{path}model.ckpt")
+        prediction = self.model.predict(dataset)
+        y_pred = [np.argmax(x) for x in prediction]
 
-    def save_model(self, path: str = "./data/model/"):
-        """
-        Save weight of the trained model.
-        Args:
-            path (str, Optional): Path for the weights, Defaults to ./data/model/
-
-        """
-
-        self.model.save_weights(f"{path}model.ckpt")
-
-    def visualise_performance(self) -> None:
-        """
-        Visual the performance of the model. It will plot loss and accuracy for training and validation dataset
-        in each epoch.
-
-        """
-        # plot the loss
-        plt.plot(self.history.history['loss'], label='train loss')
-        plt.plot(self.history.history['val_loss'], label='val loss')
-        plt.legend()
-        plt.show()
-
-        # plot the accuracy
-        plt.plot(self.history.history['accuracy'], label='train acc')
-        plt.plot(self.history.history['val_accuracy'], label='val acc')
-        plt.legend()
-        plt.show()
+        return y_pred
 
     def clean_up(self) -> None:
         """
@@ -325,3 +327,5 @@ class ImageModel:
         shutil.rmtree(self.train_tmp_folder)
         shutil.rmtree(self.val_tmp_folder)
         shutil.rmtree(self.test_tmp_folder)
+
+        super().clean_up()

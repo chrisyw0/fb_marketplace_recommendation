@@ -1,7 +1,7 @@
 import pandas as pd
 import tensorflow as tf
 import matplotlib.pyplot as plt
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Any
 
 
 class CNNBaseModel:
@@ -86,7 +86,7 @@ class CNNBaseModel:
         """
         pass
 
-    def predict_model(self, X_train) -> List[int]:
+    def predict_model(self, data: Any) -> List[int]:
         """
         Predict from the CNN Model.
         This function should be implemented in child class.
@@ -134,5 +134,8 @@ class CNNBaseModel:
         plt.show()
 
     def clean_up(self) -> None:
+        """
+        Clear the tensorflow backend session
+        """
 
         tf.keras.backend.clear_session()
