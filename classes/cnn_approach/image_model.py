@@ -3,13 +3,12 @@ import os
 import tempfile
 import shutil
 import pandas as pd
-import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 from typing import Tuple, List, Any
 from sklearn.metrics import classification_report
 from ..data_preparation.prepare_dataset import DatasetGenerator
-from cnn_model import CNNBaseModel
+from .cnn_model import CNNBaseModel
 from tensorboard.plugins.hparams import api as hp
 
 

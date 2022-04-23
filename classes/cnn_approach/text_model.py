@@ -4,7 +4,7 @@ import pandas as pd
 import tensorflow as tf
 import numpy as np
 from typing import Tuple, List, Any
-from cnn_model import CNNBaseModel
+from .cnn_model import CNNBaseModel
 from ..data_preparation.prepare_dataset import DatasetGenerator
 from tensorboard.plugins.hparams import api as hp
 from spacy.tokenizer import Tokenizer
