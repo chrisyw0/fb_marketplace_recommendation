@@ -279,16 +279,16 @@ https://tensorboard.dev/experiment/sBwpognaSqa3Q55UN5G4Yg/#scalars
 
 
 ## TODO:
-- [Milestone 6] Setup Kubeflow
-- [Milestone 7] Deploy the model into Kubeflow
-- [Issue] Model graph not showing the model structure for combined model.
-- [Enhancement] Enhance machine learning models, use grid search and hyperparameters tuning
-- [Enhancement] Use pre-trained transformer based word embedding model instead of Word2Vec, compare the performance
-- [Enhancement] Use RNN layer instead of CNN for text model, compare the performance
-- [Learning] Create API for prediction
-- [Learning] Pytorch version of everything
-- [Learning] Price prediction
-
+- **[Issue]** Model graph not showing the model structure for combined model.
+- **[Milestone 6]** Setup Kubeflow.
+- **[Milestone 7]** Deploy the model into Kubeflow.
+- **[Enhancement][ML]** Enhance machine learning models, use grid search and hyperparameters tuning.
+- **[Enhancement][Image Model]** Use other based line model as our transfer learning part, compare the performance.
+- **[Enhancement][Text Model]** Use pre-trained transformer based word embedding model instead of Word2Vec, compare the performance.
+- **[Enhancement][Text Model]** Use RNN (LSTM/GRU) or Transformer layer instead of CNN for text model, compare the performance.
+- **[Learning]** Create API for prediction.
+- **[Learning]** Pytorch everything.
+- **[Learning]** Price prediction.
 
 ## Reference
 
