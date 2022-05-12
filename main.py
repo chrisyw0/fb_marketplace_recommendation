@@ -5,6 +5,7 @@ from classes.data_preparation.clean_tabular import TabularDataCleaner
 from classes.ml_approach.ml_method import MachineLearningPredictor
 from classes.cnn_approach.image_model import ImageModel
 from classes.cnn_approach.text_model import TextModel
+from classes.cnn_approach.combine_model import ImageTextModel
 
 
 def main():
@@ -37,6 +38,10 @@ def main():
     # milestone 4: Create a text CNN model for category classification
     text_model = TextModel(df_product=df_product_clean, df_image=df_image_clean)
     text_model.process()
+
+    # milestone 5: Combining image and text model for category classification
+    combine_model = ImageTextModel(df_product=df_product_clean, df_image=df_image_clean)
+    combine_model.process()
 
 
 if __name__ == "__main__":

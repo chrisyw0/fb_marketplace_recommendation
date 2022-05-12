@@ -2,20 +2,19 @@ import pandas as pd
 import tensorflow as tf
 import numpy as np
 from typing import Tuple, List, Any
-from .text_processing_util import TextUtil
 from .cnn_model import CNNBaseModel
+from .text_processing_util import TextUtil
+from .image_text_tf_model import TFImageTextModel, TFImageModelDatasetGenerator
 from ..data_preparation.prepare_dataset import DatasetGenerator
 from tensorboard.plugins.hparams import api as hp
-
 from dataclasses import field
-from keras.preprocessing.sequence import pad_sequences
 from sklearn import preprocessing
 from sklearn.metrics import classification_report
 
 
-class TextModel(CNNBaseModel):
+class ImageTextModel(CNNBaseModel):
     """
-    A deep learning model predicting product category from its name and description.
+    A deep learning model predicting product category from its image, name and description.
 
     Args:
         df_image (pd.DataFrame): Image dataframe
@@ -28,13 +27,20 @@ class TextModel(CNNBaseModel):
 
         log_path (str, optional): Path to cache the training logs. Defaults to "./logs/text_model/".
         model_path (str, optional): Path to cache the weight of the image model. Defaults to "./model/text_model/weights/".
+        transformed_image_path (str, optional): Path to cache the transformed image. This is improving when training,
+                                                validating and testing the model as we don't need to transform and resize
+                                                images when they are loaded into memory. Defaults to "./data/adjusted_img/"
 
         batch_size (int, optional): Batch size of the model. Defaults to 32.
 
-        dropout_conv (float, optional): Dropout rate of the convolution layer of the model. Defaults to 0.5.
+        dropout_conv (float, optional): Dropout rate of the convolution layer of the model. Defaults to 0.6.
         dropout_prediction (float, optional): Dropout rate of the layer before the prediction layer of the model.
-                                              Defaults to 0.3.
+                                              Defaults to 0.4.
         learning_rate (float, optional): Learning rate of the model. Defaults to 0.01.
+        input_shape (Tuple[int, int, int], Optional): Size of the image inputting to the model.
+                                                      If image channel = 'RGB', the value will be
+                                                      (width, height, 3) i.e. 3 channels
+                                                      Defaults to (256, 256, 3)
         epoch (float, optional): Epoch of the model. Defaults to 50.
         metrics (List[str], optional):  list of metrics using for model evaluation. Defaults to ["accuracy"].
 
@@ -42,24 +48,24 @@ class TextModel(CNNBaseModel):
     df_product: pd.DataFrame
     df_image: pd.DataFrame
 
-    log_path: str = "./logs/text_model/"
-    model_path: str = "./model/text_model/weights/"
+    log_path: str = "./logs/image_text_model/"
+    model_path: str = "./model/image_text_model/weights/"
+    image_path: str = "./data/images/"
+    transformed_image_path: str = "./data/adjusted_img/"
 
     embedding: str = "Word2Vec"
     embedding_dim: int = 300
     embedding_pretrain_model: str = None
 
     batch_size: int = 32
-    dropout_conv: float = 0.5
-    dropout_prediction: float = 0.3
+    dropout_conv: float = 0.6
+    dropout_prediction: float = 0.4
     learning_rate: float = 0.01
+
+    image_shape: Tuple[int, int, int] = (256, 256, 3)
 
     epoch: int = 50
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
-
-    def __init__(self, df_image: pd.DataFrame, df_product: pd.DataFrame):
-        self.df_image = df_image
-        self.df_product = df_product
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
@@ -126,24 +132,17 @@ class TextModel(CNNBaseModel):
         # split dataset
         df_train, df_val, df_test = generator.split_dataset(df_image_data)
 
-        # since we merge image with product dataframe, and some products have more than one
-        # images, we don't want the information leak from training dataset into validation and
-        # testing dataset, we should remove those from testing and validation datasets
-        df_val = df_val[~df_val["product_id"].isin(df_train['product_id'].to_list())]
-        df_test = df_test[~df_test["product_id"].isin(df_train['product_id'].to_list())]
-
         X_train = df_train['tokens_index'].to_list()
         X_val = df_val['tokens_index'].to_list()
         X_test = df_test['tokens_index'].to_list()
 
-        y_train = df_train['category']
-        y_val = df_val['category']
-        y_test = df_test['category']
+        y_train = df_train['category'].to_list()
+        y_val = df_val['category'].to_list()
+        y_test = df_test['category'].to_list()
 
-        # pad the tokens index list for each product to make all data have the same length
-        self.X_train = pad_sequences(X_train, maxlen=self.num_max_tokens, padding="post")
-        self.X_val = pad_sequences(X_val, maxlen=self.num_max_tokens, padding="post")
-        self.X_test = pad_sequences(X_test, maxlen=self.num_max_tokens, padding="post")
+        image_train = df_train['id_x'].to_list()
+        image_val = df_val['id_x'].to_list()
+        image_test = df_test['id_x'].to_list()
 
         # one hot encoded the category
         category_encoding_layer = tf.keras.layers.CategoryEncoding(
@@ -151,98 +150,88 @@ class TextModel(CNNBaseModel):
             output_mode="one_hot"
         )
 
-        self.y_train = category_encoding_layer(y_train)
-        self.y_val = category_encoding_layer(y_val)
+        y_train = category_encoding_layer(y_train)
+        y_val = category_encoding_layer(y_val)
         self.y_test = category_encoding_layer(y_test)
 
-        print(f"Finish preparing data, shape of X_train {self.X_train.shape}, " \
-              f"shape of X_val {self.X_val.shape}, " \
-              f"shape of X_test {self.X_test.shape}, " \
-              f"shape of y_train {self.y_train.shape}, " \
-              f"shape of y_val {self.y_val.shape}, " \
-              f"shape of y_test {self.y_test.shape}")
+        gen = TFImageModelDatasetGenerator(image_train,
+                                  X_train,
+                                  self.num_max_tokens,
+                                  self.image_path,
+                                  self.image_shape,
+                                  self.batch_size,
+                                  self.num_class,
+                                  self.transformed_image_path,
+                                  y_train)
+
+        # This let tensorflow dataset know what is shape of dataset look like. We should output exactly the data same
+        # shape in data generator to avoid any exception.
+        out_sign = (
+            {
+                "token": tf.TensorSpec(shape=(None, self.num_max_tokens), dtype=tf.int32),
+                "image": tf.TensorSpec(shape=(None, self.image_shape[0], self.image_shape[1], self.image_shape[2]),
+                                       dtype=tf.float32)},
+            tf.TensorSpec(shape=(None, self.num_class), dtype=tf.float32)
+        )
+
+        self.ds_train = tf.data.Dataset.from_generator(gen, output_signature=out_sign)
+
+        gen = TFImageModelDatasetGenerator(
+            image_val,
+            X_val,
+            self.num_max_tokens,
+            self.image_path,
+            self.image_shape,
+            self.batch_size,
+            self.num_class,
+            self.transformed_image_path,
+            y_val
+        )
+
+        self.ds_val = tf.data.Dataset.from_generator(gen, output_signature=out_sign)
+
+        gen = TFImageModelDatasetGenerator(
+            image_test,
+            X_test,
+            self.num_max_tokens,
+            self.image_path,
+            self.image_shape,
+            self.batch_size,
+            self.num_class,
+            self.transformed_image_path,
+            shuffle=False
+        )
+
+        self.ds_test = tf.data.Dataset.from_generator(gen, output_signature=out_sign)
 
         return df_train, df_val, df_test
 
     def create_model(self) -> None:
         """
-        Create the CNN model for text classification. It includes following layers:
-        - Embedding layer: This layer is a non-trainable layer with pre-built weights copied from embedding layer.
-        - Conv1D: Convolution layer with activation layer applied
-        - AveragePooling1D: Averaging pooling layer
-        - Flatten: Flatten the 2D array input to 1D array
-        - Dropout: Dropout a proportion of layers outputs from previous hidden layer
-        - Dense: Linear layer with activation layer applied
-
-        The input will be the token index for each product's tokens. To make the input shape the same for all products,
-        padding is applied in previous function which simply append 0s to every product which has smaller tokens than
-        the maximum, making the input shape to (batch_size, max number of tokens, 1).
-
-        The output of the model will be the predicted probability of each class, which is equaled to
-        (batch_size, num. of classes)
-
-        This function will print out the summary of the model. Here is an example.
-
-        Model: "sequential"
-        _________________________________________________________________
-         Layer (type)                Output Shape              Param #
-        =================================================================
-         embedding (Embedding)       (None, 1458, 300)         8397600
-
-         conv1d (Conv1D)             (None, 1456, 48)          43248
-
-         average_pooling1d (AverageP  (None, 728, 48)          0
-         ooling1D)
-
-         dropout (Dropout)           (None, 728, 48)           0
-
-         conv1d_1 (Conv1D)           (None, 726, 24)           3480
-
-         average_pooling1d_1 (Averag  (None, 363, 24)          0
-         ePooling1D)
-
-         flatten (Flatten)           (None, 8712)              0
-
-         dropout_1 (Dropout)         (None, 8712)              0
-
-         dense (Dense)               (None, 256)               2230528
-
-         dropout_2 (Dropout)         (None, 256)               0
-
-         dense_1 (Dense)             (None, 13)                3341
-
-        =================================================================
-        Total params: 10,678,197
-        Trainable params: 2,280,597
-        Non-trainable params: 8,397,600
-        _________________________________________________________________
-
-        The model will finally be compiled with RMSprop optimiser, categorical cross-entropy loss and
-        accuracy as metrics. It will be saved as class attributes for later use.
-
+        It creates the model, compile and build the tensorflow model. Please check TFImageTextModel for more
+        detail of the actual model.
         """
         embedding_layer = TextUtil.gensim_to_keras_embedding(
             self.embedding_model,
             train_embeddings=False,
-            input_shape=(self.num_max_tokens,))
+            input_shape=(None, self.num_max_tokens))
 
-        self.model = tf.keras.Sequential([
+        self.model = TFImageTextModel(
+            self.num_class,
             embedding_layer,
-            tf.keras.layers.Conv1D(48, 3, activation="relu"),
-            tf.keras.layers.AveragePooling1D(2),
-            tf.keras.layers.Dropout(self.dropout_conv),
-            tf.keras.layers.Conv1D(24, 3, activation="relu"),
-            tf.keras.layers.AveragePooling1D(2),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dropout(self.dropout_conv),
-            tf.keras.layers.Dense(256, activation='relu'),
-            tf.keras.layers.Dropout(self.dropout_prediction),
-            tf.keras.layers.Dense(self.num_class, activation="softmax")
-        ])
+            self.dropout_conv,
+            self.dropout_prediction,
+            self.image_shape
+        )
 
         self.model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=self.learning_rate / 10),
                            loss=tf.keras.losses.CategoricalCrossentropy(),
                            metrics=['accuracy'])
+
+        self.model.build({
+            "image": (self.batch_size, self.image_shape[0], self.image_shape[1], self.image_shape[2]),
+            "token": (self.batch_size, self.num_max_tokens)
+        })
 
         print("Model created")
         print(self.model.summary())
@@ -255,9 +244,6 @@ class TextModel(CNNBaseModel):
         in 'history' attribute. The records will be used for illustrating the performance of the model
         in later stage. There are two callbacks called tensorboard callback and hyperparameter call back,
         it will create logs during the training process, and these logs can then be uploaded to TensorBoard.dev
-
-        Returns:
-
         """
 
         print("Start training")
@@ -275,11 +261,10 @@ class TextModel(CNNBaseModel):
             'dropout_prediction': self.dropout_prediction
         })
 
-        self.history = self.model.fit(self.X_train,
-                                      self.y_train,
+        self.history = self.model.fit(self.ds_train,
                                       batch_size=self.batch_size,
                                       epochs=self.epoch,
-                                      validation_data=(self.X_val, self.y_val),
+                                      validation_data=self.ds_val,
                                       callbacks=[
                                           callback,
                                           tensorboard_callback,
@@ -299,7 +284,7 @@ class TextModel(CNNBaseModel):
 
         """
 
-        prediction = self.model.predict(self.X_test,
+        prediction = self.model.predict(self.ds_test,
                                         batch_size=self.batch_size)
 
         y_true = [np.argmax(z) for z in self.y_test]
@@ -320,7 +305,8 @@ class TextModel(CNNBaseModel):
         Predict with the model for records in the dataset.
 
         Args:
-            data:
+            data: It should be a dataset created with TFImageModelDatasetGenerator. Please check prepare_data to
+                  see how to create the dataset from the model.
 
         Returns:
             List[int]: List of labels

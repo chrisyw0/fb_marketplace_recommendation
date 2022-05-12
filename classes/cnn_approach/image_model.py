@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import field
 import os
 import tempfile
 import shutil
@@ -12,7 +12,6 @@ from .cnn_model import CNNBaseModel
 from tensorboard.plugins.hparams import api as hp
 
 
-@dataclass
 class ImageModel(CNNBaseModel):
     """
     A deep learning model predicting product category of an image.

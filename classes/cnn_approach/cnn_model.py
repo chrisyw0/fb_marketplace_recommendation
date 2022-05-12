@@ -46,6 +46,10 @@ class CNNBaseModel:
     model: Optional[tf.keras.Model] = None
     history: Optional[tf.keras.callbacks.History] = None
 
+    def __init__(self, df_image: pd.DataFrame, df_product: pd.DataFrame):
+        self.df_image = df_image
+        self.df_product = df_product
+
     def process(self) -> None:
         """
         The entry point of the process. It runs through all required steps of training and testing stage.
