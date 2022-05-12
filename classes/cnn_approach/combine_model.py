@@ -20,6 +20,7 @@ class ImageTextModel(CNNBaseModel):
         df_image (pd.DataFrame): Image dataframe
         df_product (pd.DataFrame): Product dataframe
 
+        model_name(str): Name of the model.
         embedding (str, Optional): The type of embedding model. Defaults to "Word2Vec".
         embedding_dim (int, Optional): The vector size of embedding model. Defaults to 300.
         embedding_pretrain_model (str, Optional): Whether to use a pretrain model to encode the text.
@@ -47,6 +48,8 @@ class ImageTextModel(CNNBaseModel):
     """
     df_product: pd.DataFrame
     df_image: pd.DataFrame
+
+    model_name = "image_text_model"
 
     log_path: str = "./logs/image_text_model/"
     model_path: str = "./model/image_text_model/weights/"
@@ -234,7 +237,6 @@ class ImageTextModel(CNNBaseModel):
         })
 
         print("Model created")
-        print(self.model.summary())
 
     def train_model(self) -> None:
         """

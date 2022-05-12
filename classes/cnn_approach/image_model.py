@@ -19,6 +19,8 @@ class ImageModel(CNNBaseModel):
     Args:
         df_image (pd.DataFrame): Image dataframe
         df_product (pd.DataFrame): Product dataframe
+
+        model_name(str): Name of the model.
         image_path (str, optional): Path to cache the image dataframe. Defaults to "./data/images/".
         log_path (str, optional): Path to cache the training logs. Defaults to "./logs/image_model/".
         model_path (str, optional): Path to cache the weight of the image model. Defaults to "./model/image_model/weights/".
@@ -37,6 +39,8 @@ class ImageModel(CNNBaseModel):
     """
     df_product: pd.DataFrame
     df_image: pd.DataFrame
+
+    model_name = "image_model"
 
     image_path: str = "./data/images/"
     log_path: str = "./logs/image_model/"
@@ -196,7 +200,7 @@ class ImageModel(CNNBaseModel):
         base_model = tf.keras.applications.ResNet50V2(include_top=False, input_shape=self.input_shape)
         base_model.trainable = False
 
-        print(base_model.summary())
+        # print(base_model.summary())
 
         # add layers for the model:
         # data augmentation, pooling layer, dropout,
@@ -235,7 +239,6 @@ class ImageModel(CNNBaseModel):
                            loss=tf.keras.losses.CategoricalCrossentropy(),
                            metrics=['accuracy'])
 
-        print(self.model.summary())
 
     def train_model(self) -> None:
         """

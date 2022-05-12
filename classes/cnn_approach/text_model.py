@@ -21,13 +21,15 @@ class TextModel(CNNBaseModel):
         df_image (pd.DataFrame): Image dataframe
         df_product (pd.DataFrame): Product dataframe
 
+        model_name(str): Name of the model.
+
+        log_path (str, optional): Path to cache the training logs. Defaults to "./logs/text_model/".
+        model_path (str, optional): Path to cache the weight of the image model. Defaults to "./model/text_model/weights/".
+
         embedding (str, Optional): The type of embedding model. Defaults to "Word2Vec".
         embedding_dim (int, Optional): The vector size of embedding model. Defaults to 300.
         embedding_pretrain_model (str, Optional): Whether to use a pretrain model to encode the text.
                                                   Defaults to None, which means no pretrained model is used.
-
-        log_path (str, optional): Path to cache the training logs. Defaults to "./logs/text_model/".
-        model_path (str, optional): Path to cache the weight of the image model. Defaults to "./model/text_model/weights/".
 
         batch_size (int, optional): Batch size of the model. Defaults to 32.
 
@@ -35,12 +37,15 @@ class TextModel(CNNBaseModel):
         dropout_prediction (float, optional): Dropout rate of the layer before the prediction layer of the model.
                                               Defaults to 0.3.
         learning_rate (float, optional): Learning rate of the model. Defaults to 0.01.
+
         epoch (float, optional): Epoch of the model. Defaults to 50.
         metrics (List[str], optional):  list of metrics using for model evaluation. Defaults to ["accuracy"].
 
     """
     df_product: pd.DataFrame
     df_image: pd.DataFrame
+
+    model_name = "text_model"
 
     log_path: str = "./logs/text_model/"
     model_path: str = "./model/text_model/weights/"
@@ -245,7 +250,6 @@ class TextModel(CNNBaseModel):
                            metrics=['accuracy'])
 
         print("Model created")
-        print(self.model.summary())
 
     def train_model(self) -> None:
         """

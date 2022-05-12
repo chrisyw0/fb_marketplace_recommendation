@@ -2,6 +2,7 @@ import pandas as pd
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from typing import Tuple, List, Optional, Any
+from keras.utils.vis_utils import plot_model
 
 
 class CNNBaseModel:
@@ -11,19 +12,21 @@ class CNNBaseModel:
     It contains the following majors methods, which should be implemented in the subclass:
     1. prepare_data - Input product and image data and get the training, validation and testing dataset.
     2. create_model - Create a deep learning model according to the input data shape and other configuration
-    3. train_model - Train the model with training dataset, and validate it with validation dataset.
-    4. evaluate_model/predict_model - Test the model with the testing dataset. evaluate_model will only get the
+    3. show_model_summary - Show the summary of the model, as well as export the model graph.
+    4. train_model - Train the model with training dataset, and validate it with validation dataset.
+    5. evaluate_model/predict_model - Test the model with the testing dataset. evaluate_model will only get the
                                       overall accuracy and loss while predict_model will return a classification
                                       report and predicted labels for the testing dataset.
-    5. visualise_performance - Plot the accuracy and loss in each epoch for training and validation dataset
-    6. save_model - Save the weight for the model for later use.
-    7. clean_up - remove the folders storing the images.
+    6. visualise_performance - Plot the accuracy and loss in each epoch for training and validation dataset
+    7. save_model - Save the weight for the model for later use.
+    8. clean_up - remove the folders storing the images.
 
     The method "process" will run through the whole process, should be the entry point if you want to train and
     test the model.
 
     Attributes
 
+    model_name(str): Name of the model.
     log_path(str): Path for storing the logs, which will be later uploaded into tensorboard to visualise the model
                    performance.
     model_path(str): Path for storing the model weights. Once the model is trained, the weight will be available
@@ -34,6 +37,8 @@ class CNNBaseModel:
     metrics(List[str]): The metrics to be used to evaluate the model performance
 
     """
+    model_name: str
+
     log_path: str
     model_path: str
 
@@ -75,6 +80,19 @@ class CNNBaseModel:
         This function should be implemented in child class.
         """
         pass
+
+    def show_model_summary(self) -> None:
+        """
+        Show model summary
+
+        """
+
+        print(self.model.summary())
+
+        plot_model(self.model,
+                   to_file=f'./model/{self.model_name}.png',
+                   show_shapes=True,
+                   show_layer_names=True)
 
     def train_model(self) -> None:
         """
