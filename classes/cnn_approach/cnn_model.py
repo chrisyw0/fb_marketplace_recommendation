@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import tensorflow as tf
 import matplotlib.pyplot as plt
@@ -89,6 +90,8 @@ class CNNBaseModel:
         """
 
         print(self.model.summary())
+
+        os.makedirs('./model/', exist_ok=True)
 
         plot_model(self.model,
                    to_file=f'./model/{self.model_name}.png',
