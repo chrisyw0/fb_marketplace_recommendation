@@ -61,6 +61,7 @@ class CNNBaseModel:
         """
         self.prepare_data()
         self.create_model()
+        self.show_model_summary()
         self.train_model()
         self.evaluate_model()
         self.save_model()
