@@ -115,6 +115,8 @@ The model summary is as follows:
     Trainable params: 2,280,597
     Non-trainable params: 8,397,600
 
+![Image model graph](readme_images/image_model.png)
+
 We use the same training, validation and testing dataset as the machine model. The overall accuracy is about 55%, much better than logistic regression.  
 
 The logs of model training will be available in ./logs/image_model/, once the process completed, we can use the following command to upload the result into a Tensorboard.
@@ -131,7 +133,7 @@ Then we can navigate to link showing on the screen and see the plots of your res
 Here is the result for this model:
 https://tensorboard.dev/experiment/Ze8GNeW5T2yhepr8YKgnWA/#scalars&runSelectionState=eyIuIjp0cnVlfQ%3D%3D
 
-![CNN Model Accuracy](image_accuracy.png)
+![CNN Model Accuracy](readme_images/image_accuracy.png)
 
 ## Milestone 4 
 
@@ -178,6 +180,8 @@ The model summary is as follows:
     Trainable params: 2,280,597
     Non-trainable params: 8,397,600
 
+![Text model graph](readme_images/text_model.png)
+
 We use the same training, validation and testing dataset as the machine model. The overall accuracy is about 51%, again, much better than machine learning classification model.  
 
 The logs of model training will be available in ./logs/text_model/, once the process completed, we can use the following command to upload the result into a Tensorboard.
@@ -194,7 +198,85 @@ Then we can navigate to link showing on the screen and see the plots of your res
 Here is the result for this model:
 https://tensorboard.dev/experiment/9u1q6KkzTzaJm5I6fVwO7Q/#scalars
 
-![CNN Model Accuracy](text_accuracy.png)
+![CNN Model Accuracy](readme_images/text_accuracy.png)
+
+## Milestone 5 
+
+In previous milestones, we demonstrate how to input image and text into the models to perform classification. In fact, we can combine them into a single model.
+
+Since there is no single method from Tensorflow/Keras can allow user generates dataset with text and images at the same time, it adds challenges building the dataset as well as the model. In this project, I use dataset generator to create a dataset, which can output a batch of text and image records at a time. 
+
+Also, as the model complexity increases, I create a separate class for the actual CNN model (inherent the tf.keras.Model) for better readability.
+
+The mode summary is as follows:
+
+    _________________________________________________________________
+     Layer (type)                Output Shape              Param #   
+    =================================================================
+     embedding (Embedding)       multiple                  8397600   
+                                                                     
+     conv1d (Conv1D)             multiple                  43248     
+                                                                     
+     average_pooling1d (AverageP  multiple                 0         
+     ooling1D)                                                       
+                                                                     
+     dropout (Dropout)           multiple                  0         
+                                                                     
+     conv1d_1 (Conv1D)           multiple                  3480      
+                                                                     
+     average_pooling1d_1 (Averag  multiple                 0         
+     ePooling1D)                                                     
+                                                                     
+     flatten (Flatten)           multiple                  0         
+                                                                     
+     dropout_1 (Dropout)         multiple                  0         
+                                                                     
+     dense (Dense)               multiple                  1115264   
+                                                                     
+     dropout_2 (Dropout)         multiple                  0         
+                                                                     
+     sequential (Sequential)     (32, 256, 256, 3)         0         
+                                                                     
+     resnet50v2 (Functional)     (None, 8, 8, 2048)        23564800  
+                                                                     
+     global_average_pooling2d (G  multiple                 0         
+     lobalAveragePooling2D)                                          
+                                                                     
+     dropout_3 (Dropout)         multiple                  0         
+                                                                     
+     dense_1 (Dense)             multiple                  262272    
+                                                                     
+     dropout_4 (Dropout)         multiple                  0         
+                                                                     
+     dense_2 (Dense)             multiple                  3341      
+                                                                     
+    =================================================================
+    Total params: 33,390,005
+    Trainable params: 1,427,605
+    Non-trainable params: 31,962,400
+    _________________________________________________________________
+
+![Combine model graph](readme_images/image_text_model.png)
+
+We use the same training, validation and testing dataset as the machine model. The overall accuracy is about 51%, again, much better than machine learning classification model.  
+
+The logs of model training will be available in ./logs/image_text_model/, once the process completed, we can use the following command to upload the result into a Tensorboard.
+
+```commandline
+tensorboard dev upload --logdir ./logs/image_text_model \
+  --name "Combined CNN classification model" \
+  --description "Training results for CNN models" \
+  --one_shot
+```
+
+Then we can navigate to link showing on the screen and see the plots of your result.
+
+Here is the result for this model:
+https://tensorboard.dev/experiment/sBwpognaSqa3Q55UN5G4Yg/#scalars
+
+
+![CNN Model Accuracy](readme_images/image_text_accuracy.png)
+
 
 ## Reference
 
