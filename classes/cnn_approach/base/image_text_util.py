@@ -1,17 +1,47 @@
-import tensorflow as tf
 import os
 import re
+import emoji
+
 from typing import List, Tuple, Any
 from spacy.tokenizer import Tokenizer
 from spacy.lang.en import English
 from gensim.models import Word2Vec
+from gensim.parsing.preprocessing import remove_stopwords
 
 
-class TextUtil:
+class ImageTextUtil:
+    """
+    This class provides some common util methods for image and text processing
+    """
+
+    @staticmethod
+    def clean_text(text: str, remove_stop_words: bool = False):
+        """
+        Remove emoji, tab, new line and spaces in the text
+        Args:
+            text: The text to be cleaned
+            remove_stop_words: Whether to remove stop words from the text
+
+        Returns:
+            Cleaned text
+
+        """
+        result_text = emoji.replace_emoji(text, replace='')
+        result_text = re.sub('[\n\t\r|]', '', result_text)
+        result_text = re.sub(' +', ' ', result_text)
+
+        if remove_stop_words:
+            result_text = remove_stopwords(result_text)
+
+        result_text = result_text.strip()
+
+        return result_text
+
     @staticmethod
     def tokenise(product_sentences: List[List[str]],
                  embedding: str,
-                 with_symbol: bool = False) -> Tuple[List[str], List[List[str]], int]:
+                 with_symbol: bool = False,
+                 pre_trained_model: str = None) -> Tuple[List[str], Any, int]:
 
         """
         Tokenise the input sentence into tokens.
@@ -19,11 +49,12 @@ class TextUtil:
             product_sentences: The products' description sentences.
             embedding: Type of embedding.
             with_symbol: Keep symbols in the list of tokens.
+            pre_trained_model: The name of pretrained model
 
         Returns:
             Tuple[List[str], List[List[str]], int]:
                 A list of tokens of the input product
-                Split input into sentences, and each sentence is a list of tokens
+                Any extra data
                 Maximum number of tokens of the input products' sentences
 
         """
@@ -36,6 +67,8 @@ class TextUtil:
             w2v_training_text = []  # store a list of sentences for all products
 
             num_max_tokens = 0
+
+            product_sentences = [sentence.split('.') for sentence in product_sentences]
 
             # for sentences in each product
             for sentences in product_sentences:
@@ -71,7 +104,8 @@ class TextUtil:
                                 training_data: List[List[str]] = None,
                                 window: int = 2,
                                 min_count: int = 1,
-                                pretrain_model: str = None) -> Any:
+                                pretrain_model: str = None,
+                                trainable: bool = True) -> Any:
 
         """
         Create a word embedding model.
@@ -82,6 +116,7 @@ class TextUtil:
             window: The window size to be used to train the model.
             min_count: The minimum number token to be found in training dataset and to be included in the embedding model.
             pretrain_model: The pre-train model to be used.
+            trainable: Whether the model is trainable
 
         Returns:
             Any: Embedding model.
@@ -104,7 +139,8 @@ class TextUtil:
     @staticmethod
     def get_token_index(product_tokens: List[List[str]],
                         embedding: str,
-                        model: Any) -> List[List[int]]:
+                        model: Any,
+                        extra_data: Any = None) -> List[List[int]]:
 
         """
         Get token index for each token in the embedding model.
@@ -113,6 +149,7 @@ class TextUtil:
             product_tokens: List of product tokens.
             embedding: Type of embedding.
             model: Embedding model.
+            extra_data: Extra data that help build the model.
 
         Returns:
             A list of token index for each input product's tokens.
@@ -136,40 +173,15 @@ class TextUtil:
             return tokens_idx
 
     @staticmethod
-    def gensim_to_keras_embedding(model: Any,
-                                  train_embeddings: bool = False,
-                                  input_shape : Tuple = None):
-        """Get a Keras 'Embedding' layer with weights set from Word2Vec model's learned word embeddings.
-
-        Parameters
-        ----------
-        model: Any
-            Gensim word embedding model. This can be Word2vec, FastText or Glove
-        train_embeddings : bool
-            If False, the returned weights are frozen and stopped from being updated.
-            If True, the weights can / will be further updated in Keras.
-        input_shape: Tuple
-            Input shape to the output layer
-
-        Returns
-        -------
-        `keras.layers.Embedding`
-            Embedding layer, to be used as input to deeper network layers.
-
+    def prepare_image_base_model(model_name: str, trainable: bool = False):
         """
+        Abstract method to return an image based model using as part of transfer learning.
+        Args:
+            model_name: The based model name
+            trainable: Whether the model is trainable
 
-        # this is copied from gensim github with additional input shape input as param.
+        Returns:
+            The based model
+        """
+        pass
 
-        keyed_vectors = model.wv  # structure holding the result of training
-        weights = keyed_vectors.vectors  # vectors themselves, a 2D numpy array
-        index_to_key = keyed_vectors.index_to_key  # which row in `weights` corresponds to which word?
-
-        layer = tf.keras.layers.Embedding(
-            input_dim=weights.shape[0],
-            output_dim=weights.shape[1],
-            weights=[weights],
-            trainable=train_embeddings,
-            input_shape=input_shape
-        )
-
-        return layer

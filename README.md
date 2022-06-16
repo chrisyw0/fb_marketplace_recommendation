@@ -1,5 +1,19 @@
 # Facebook MarketPlace Search Ranking
 
+### WARNING
+```
+get_last_update(PROJECT)
+>>> [16/6]
+
+get_status(README)
+>>> OUTDATED!!!
+
+get_message(README)
+>>> I have extended this project with EfficientNet and BERT. 
+    The results are in somewhere in colab notebook.
+    The tensorboard data is missing at the moment so this README is not updated.
+```
+
 This project aims at recommending buyers to a product by using a multimodal model trained by image and text datasets. Here are a few keynotes about the project: 
 
 - Processed and cleaned text and image datasets

@@ -1,13 +1,14 @@
 import pandas as pd
 import numpy as np
+
 from sklearn import preprocessing
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import mean_squared_error, classification_report
 from typing import Tuple
-from dataclasses import dataclass
-from ..data_preparation.prepare_dataset import DatasetGenerator
 
-@dataclass
+from ..data_preparation.prepare_dataset import DatasetHelper
+
+
 class MachineLearningPredictor:
     """Predict price and category using machine learning models
     
@@ -15,9 +16,14 @@ class MachineLearningPredictor:
         df_product (pd.DataFrame): Product dataframe with additional features generated
         df_image (pd.DataFrame): Image dataframe with additional features generated
     """
-    
-    df_product: pd.DataFrame
-    df_image: pd.DataFrame
+
+    def __init__(self,
+                 df_product: pd.DataFrame,
+                 df_image: pd.DataFrame
+                 ):
+
+        self.df_product = df_product
+        self.df_image = df_image
 
     def predict_price(self) -> Tuple[LinearRegression, float]:
         """
@@ -31,7 +37,7 @@ class MachineLearningPredictor:
         """
 
         # get the dataset
-        data_generator = DatasetGenerator(self.df_product, self.df_image)
+        data_generator = DatasetHelper(self.df_product, self.df_image)
         df_product = data_generator.generate_product_data()
 
         # we don't use validation dataset for ml model
@@ -78,7 +84,7 @@ class MachineLearningPredictor:
             Tuple[LogisticRegression, float]: Logistic regression model and classification report in dictionary format
         """
 
-        data_generator = DatasetGenerator(self.df_product, self.df_image)
+        data_generator = DatasetHelper(self.df_product, self.df_image)
         df_image_product = data_generator.generate_image_product_dataset()
 
         # print(df_image_product.columns)

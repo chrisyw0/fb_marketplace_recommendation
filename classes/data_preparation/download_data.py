@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import os
 import yaml
 import re
@@ -12,7 +11,7 @@ from tqdm import tqdm
 from zipfile import ZipFile
 from dataclasses import dataclass
 
-@dataclass
+
 class DataDownloader:
     """Data Downloader
     
@@ -23,8 +22,13 @@ class DataDownloader:
         config_file (str, optional): The path of the config file. Defaults to "./aws.yaml".
         
     """
-    cached_path: str = "./data/"
-    config_file: str = "./aws.yaml"
+
+    def __init__(self,
+                 cached_path: str = "./data/",
+                 config_file: str = "./aws.yaml"
+                 ):
+        self.cached_path = cached_path
+        self.config_file = config_file
     
     def read_cloud_config(self) -> dict:
         """

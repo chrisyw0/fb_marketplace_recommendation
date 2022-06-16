@@ -1,12 +1,12 @@
-from typing import Tuple, Optional
 import PIL
-from PIL import ImageOps
 import numpy as np
 import pandas as pd
 import pickle
-from dataclasses import dataclass
 
-@dataclass
+from typing import Tuple, Optional
+from PIL import ImageOps
+
+
 class ImageCleaner:
     """Clean image data
     
@@ -16,9 +16,16 @@ class ImageCleaner:
         cached_path (str, optional): Path to cache the image dataframe. Defaults to "./data/".
         
     """
-    df_image: pd.DataFrame
-    df_product: pd.DataFrame
-    cached_path: str = "./data/"
+
+    def __init__(self,
+                 df_image: pd.DataFrame,
+                 df_product: pd.DataFrame,
+                 cached_path: str = "./data/"
+                 ):
+
+        self.df_image = df_image
+        self.df_product = df_product
+        self.cached_path = cached_path
     
     def clean_image_data(self) -> pd.DataFrame:
         """

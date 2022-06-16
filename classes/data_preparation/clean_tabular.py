@@ -1,4 +1,3 @@
-from distutils.command.clean import clean
 from typing import Tuple, Optional, List
 import pandas as pd
 import pickle
@@ -9,10 +8,8 @@ import PIL
 from geopy.geocoders import Nominatim
 from spacy.tokenizer import Tokenizer
 from spacy.lang.en import English
-from dataclasses import dataclass
 
 
-@dataclass
 class TabularDataCleaner:
     """Clean tabular data
     
@@ -22,9 +19,16 @@ class TabularDataCleaner:
         cached_path (str, optional): Path of the cached data. Defaults to "./data/".
 
     """
-    df_product: pd.DataFrame
-    df_image: pd.DataFrame
-    cached_path: str = "./data/"
+
+    def __init__(self,
+                 df_product: pd.DataFrame,
+                 df_image: pd.DataFrame,
+                 cached_path: str = "./data/"
+                 ):
+
+        self.df_product = df_product
+        self.df_image = df_image
+        self.cached_path = cached_path
 
     def create_product_data(self) -> pd.DataFrame:
         """ Generate additional from original product dataframe and

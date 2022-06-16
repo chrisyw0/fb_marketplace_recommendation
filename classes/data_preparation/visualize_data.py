@@ -3,9 +3,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from wordcloud import WordCloud, STOPWORDS
 from typing import Tuple
-from dataclasses import dataclass
 
-@dataclass
+
 class DataVisializer:
     """Visualisation the data
 
@@ -14,8 +13,12 @@ class DataVisializer:
         df_image (pd.DataFrame): Image dataframe
     
     """
-    df_product: pd.DataFrame
-    df_image: pd.DataFrame
+    def __init__(self,
+                 df_product: pd.DataFrame,
+                 df_image: pd.DataFrame
+                 ):
+        self.df_product = df_product
+        self.df_image = df_image
     
     def show_location(self, continent: str = None, country: str = None):
         """ 

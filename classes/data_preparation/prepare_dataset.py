@@ -1,10 +1,9 @@
 import pandas as pd
 import random
-from dataclasses import dataclass
 from typing import Tuple
 
-@dataclass
-class DatasetGenerator:
+
+class DatasetHelper:
     """
     Generate required dataset and manage data split
 
@@ -18,12 +17,20 @@ class DatasetGenerator:
 
     """
 
-    df_product: pd.DataFrame
-    df_image: pd.DataFrame
+    def __init__(
+            self,
+            df_product: pd.DataFrame,
+            df_image: pd.DataFrame,
+            random_state: int = 42,
+            val_size: float = 0.2,
+            test_size: float = 0.2
+        ):
 
-    random_state: int = 42
-    val_size: float = 0.2
-    test_size: float = 0.2
+        self.df_product = df_product
+        self.df_image = df_image
+        self.random_state = random_state
+        self.val_size = val_size
+        self.test_size = test_size
 
     def generate_image_product_dataset(self) -> pd.DataFrame:
         """
@@ -96,4 +103,3 @@ class DatasetGenerator:
         test_idx = full_idx[val_end_idx:]
 
         return dataset.iloc[train_idx], dataset.iloc[val_idx], dataset.iloc[test_idx]
-
