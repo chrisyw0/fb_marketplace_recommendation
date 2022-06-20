@@ -6,7 +6,6 @@ import math
 from typing import Tuple, List, Any
 from sklearn.metrics import classification_report
 from sklearn import preprocessing
-from tensorboard.plugins.hparams import api as hp
 from dataclasses import field
 from official.nlp import optimization
 
@@ -279,9 +278,9 @@ class TFImageClassifier(TFBaseClassifier):
         """
         Train a model with the training data. In each epoch, it will print out the loss and accuracy
         of the training and validation dataset in 'history' attribute. The records will be used for
-        illustrating the performance of the model in later stage. There are 3 callbacks called early_stop_callback,
-        tensorboard callback and hyperparameter callback: early_stop_callback will detect whether the model is overfitted
-        and stop training while tensorboard callback and hyperparameter callback will create logs during the training
+        illustrating the performance of the model in later stage. There are 2 callbacks called early_stop_callback,
+        tensorboard callback: early_stop_callback will detect whether the model is overfitted
+        and stop training while tensorboard callback will create logs during the training
         process, and these logs can then be uploaded to TensorBoard.dev.
 
         """
@@ -295,20 +294,17 @@ class TFImageClassifier(TFBaseClassifier):
                                                                restore_best_weights=True)
 
         tensorboard_callback = tf.keras.callbacks.TensorBoard(
-            log_dir=self.log_path, histogram_freq=1)
-
-        hparams_callback = hp.KerasCallback(self.log_path, {
-            'dropout_conv': self.dropout_conv,
-            'dropout_pred': self.dropout_pred
-        })
+            log_dir=self.log_path,
+            histogram_freq=1,
+            write_graph=False
+        )
 
         self.history = self.model.fit(self.ds_train,
                                       epochs=self.epoch,
                                       validation_data=self.ds_val,
                                       callbacks=[
                                           early_stop_callback,
-                                          tensorboard_callback,
-                                          hparams_callback
+                                          tensorboard_callback
                                       ])
 
     def fine_tune_model(self) -> None:
@@ -343,23 +339,22 @@ class TFImageClassifier(TFBaseClassifier):
             print(self.model.summary(expand_nested=True, show_trainable=True))
 
             tensorboard_callback = tf.keras.callbacks.TensorBoard(
-                log_dir=self.log_path, histogram_freq=1)
-
-            hparams_callback = hp.KerasCallback(self.log_path, {
-                'dropout_conv': self.dropout_conv
-            })
+                log_dir=self.log_path,
+                histogram_freq=1,
+                write_graph=False
+            )
 
             early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
                                                                    patience=5,
                                                                    restore_best_weights=False)
 
             fine_tune_history = self.model.fit(self.ds_train,
-                                               epochs=self.fine_tune_epoch,
+                                               epochs=self.epoch+self.fine_tune_epoch,
+                                               initial_epoch=self.epoch,
                                                validation_data=self.ds_val,
                                                callbacks=[
                                                    early_stop_callback,
-                                                   tensorboard_callback,
-                                                   hparams_callback
+                                                   tensorboard_callback
                                                ])
 
             self.history.history['loss'].extend(fine_tune_history.history['loss'])

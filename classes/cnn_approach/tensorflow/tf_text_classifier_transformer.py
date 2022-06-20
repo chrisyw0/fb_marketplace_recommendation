@@ -4,7 +4,6 @@ import numpy as np
 import math
 
 from typing import Tuple, List, Any
-from tensorboard.plugins.hparams import api as hp
 from dataclasses import field
 from sklearn import preprocessing
 from sklearn.metrics import classification_report
@@ -238,8 +237,8 @@ class TFTextTransformerClassifier(TFBaseClassifier):
         If the model fails to improve for 8 epochs, it will stop training to avoid overfitting.
         In each epoch, it will print out the loss and accuracy of the training and validation dataset
         in 'history' attribute. The records will be used for illustrating the performance of the model
-        in later stage. There are two callbacks called tensorboard callback and hyperparameter call back,
-        it will create logs during the training process, and these logs can then be uploaded to TensorBoard.dev
+        in later stage. There is a callback called tensorboard callback, which creates logs during the training process,
+        and these logs can then be uploaded to TensorBoard.dev
 
         Since we don't have much other layers than the embedding layers, we can treat this step as the fine-tuning
         steps of the transformer based model.
@@ -258,11 +257,9 @@ class TFTextTransformerClassifier(TFBaseClassifier):
 
         tensorboard_callback = tf.keras.callbacks.TensorBoard(
             log_dir=self.log_path,
-            histogram_freq=1)
-
-        hparams_callback = hp.KerasCallback(self.log_path, {
-            'dropout_pred': self.dropout_pred
-        })
+            histogram_freq=1,
+            write_graph=False
+        )
 
         self.history = self.model.fit(self.ds_train,
                                       batch_size=self.batch_size,
@@ -270,8 +267,7 @@ class TFTextTransformerClassifier(TFBaseClassifier):
                                       validation_data=self.ds_val,
                                       callbacks=[
                                           callback,
-                                          tensorboard_callback,
-                                          hparams_callback
+                                          tensorboard_callback
                                       ])
 
         print("Finish training")

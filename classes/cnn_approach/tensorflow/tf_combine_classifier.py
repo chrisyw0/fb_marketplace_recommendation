@@ -4,7 +4,6 @@ import numpy as np
 import math
 
 from typing import Tuple, List, Any, Optional
-from tensorboard.plugins.hparams import api as hp
 from dataclasses import field
 from sklearn import preprocessing
 from sklearn.metrics import classification_report
@@ -330,27 +329,24 @@ class TFImageTextClassifier(TFBaseClassifier):
         Train the model with the training data. It applies early stop by monitoring loss of validation dataset.
         In each epoch, it will print out the loss and accuracy of the training and validation dataset
         in 'history' attribute. The records will be used for illustrating the performance of the model
-        in later stage. There are two callbacks called tensorboard callback and hyperparameter call back,
-        it will create logs during the training process, and these logs can then be uploaded to TensorBoard.dev
+        in later stage. There is a callback called tensorboard callback, which creates logs during the training process,
+        and these logs can then be uploaded to TensorBoard.dev
         """
 
         print("Start training")
 
         tensorboard_callback = tf.keras.callbacks.TensorBoard(
             log_dir=self.log_path,
-            histogram_freq=1)
-
-        hparams_callback = hp.KerasCallback(self.log_path, {
-            'model': self.model_name,
-        })
+            histogram_freq=1,
+            write_graph=False
+        )
 
         self.history = self.model.fit(self.ds_train,
                                       batch_size=self.batch_size,
                                       epochs=self.epoch,
                                       validation_data=self.ds_val,
                                       callbacks=[
-                                          tensorboard_callback,
-                                          hparams_callback
+                                          tensorboard_callback
                                       ])
 
         print("Finish training")

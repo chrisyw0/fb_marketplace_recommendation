@@ -4,7 +4,6 @@ import numpy as np
 import math
 
 from typing import Tuple, List, Any
-from tensorboard.plugins.hparams import api as hp
 from dataclasses import field
 from sklearn import preprocessing
 from sklearn.metrics import classification_report
@@ -297,8 +296,8 @@ class TFTextClassifier(TFBaseClassifier):
         If the model fails to improve for 5 epochs, it will stop training to avoid overfitting.
         In each epoch, it will print out the loss and accuracy of the training and validation dataset
         in 'history' attribute. The records will be used for illustrating the performance of the model
-        in later stage. There are two callbacks called tensorboard callback and hyperparameter call back,
-        it will create logs during the training process, and these logs can then be uploaded to TensorBoard.dev
+        in later stage. There is a callback called tensorboard callback which create logs during the training process,
+        and these logs can then be uploaded to TensorBoard.dev
 
         Returns:
 
@@ -306,27 +305,23 @@ class TFTextClassifier(TFBaseClassifier):
 
         print("Start training")
 
-        callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
-                                                    patience=5,
-                                                    restore_best_weights=True)
+        early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
+                                                               patience=5,
+                                                               restore_best_weights=True)
 
         tensorboard_callback = tf.keras.callbacks.TensorBoard(
             log_dir=self.log_path,
-            histogram_freq=1)
-
-        hparams_callback = hp.KerasCallback(self.log_path, {
-            'dropout_conv': self.dropout_conv,
-            'dropout_pred': self.dropout_pred
-        })
+            histogram_freq=1,
+            write_graph=False
+        )
 
         self.history = self.model.fit(self.ds_train,
                                       batch_size=self.batch_size,
                                       epochs=self.epoch,
                                       validation_data=self.ds_val,
                                       callbacks=[
-                                          callback,
-                                          tensorboard_callback,
-                                          hparams_callback
+                                          early_stop_callback,
+                                          tensorboard_callback
                                       ])
 
         print("Finish training")
@@ -365,11 +360,10 @@ class TFTextClassifier(TFBaseClassifier):
             ))
 
             tensorboard_callback = tf.keras.callbacks.TensorBoard(
-                log_dir=self.log_path, histogram_freq=1)
-
-            hparams_callback = hp.KerasCallback(self.log_path, {
-                'dropout_pred': self.dropout_pred
-            })
+                log_dir=self.log_path,
+                histogram_freq=1,
+                write_graph=False
+            )
 
             # for some reason, the val accuracy keeps increasing even the val_loss increasing in last few epoch, this
             # may happen there are some records contains
@@ -378,12 +372,12 @@ class TFTextClassifier(TFBaseClassifier):
                                                                    restore_best_weights=False)
 
             fine_tune_history = self.model.fit(self.ds_train,
-                                               epochs=self.fine_tune_epoch,
+                                               epochs=self.epoch+self.fine_tune_epoch,
+                                               initial_epoch=self.epoch,
                                                validation_data=self.ds_val,
                                                callbacks=[
                                                    early_stop_callback,
-                                                   tensorboard_callback,
-                                                   hparams_callback
+                                                   tensorboard_callback
                                                ])
 
             self.history.history['loss'].extend(fine_tune_history.history['loss'])
