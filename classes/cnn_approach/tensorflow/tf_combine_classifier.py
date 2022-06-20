@@ -30,13 +30,9 @@ class TFImageTextClassifier(TFBaseClassifier):
         image_base_model (str, optional): Name of the image pre-trained model. Defaults to "EfficientNetB3"
         embedding (str, Optional): The type of embedding model. Defaults to "Word2Vec".
 
-        model_name(str): Name of the model. Defaults to "image_text_model_{image_base_model}_{embedding}"
-
         embedding_pretrain_model (str, Optional): Whether to use a pretrain model to encode the text.
                                                   Defaults to None, which means no pretrained model is used.
 
-        log_path (str, optional): Path to cache the training logs. Defaults to "./logs/text_model/".
-        model_path (str, optional): Path to cache the weight of the image model. Defaults to "./model/text_model/weights/".
         transformed_image_path (str, optional): Path to cache the transformed image. This is improving when training,
                                                 validating and testing the model as we don't need to transform and resize
                                                 images when they are loaded into memory. Defaults to "./data/adjusted_img/"
@@ -60,11 +56,6 @@ class TFImageTextClassifier(TFBaseClassifier):
     image_base_model: str = "EfficientNetB3"
     embedding: str = "Word2Vec"
 
-    model_name = f"image_text_model_{image_base_model}_{embedding}"
-
-    log_path: str = f"./logs/image_text_model/{image_base_model}_{embedding}"
-    model_path: str = f"./model/image_text_model/{image_base_model}_{embedding}/weights/"
-
     image_path: str = "./data/images/"
     transformed_image_path: str = "./data/adjusted_img/"
 
@@ -87,8 +78,7 @@ class TFImageTextClassifier(TFBaseClassifier):
                  embedding_model: Optional[Any]
                  ):
 
-        self.df_image = df_image
-        self.df_product = df_product
+        super().__init__(df_image, df_product)
 
         self.image_seq_layers = tf.keras.models.clone_model(image_seq_layers)
         self.image_seq_layers.set_weights(image_seq_layers.get_weights())
@@ -99,6 +89,9 @@ class TFImageTextClassifier(TFBaseClassifier):
         self.is_transformer_based_text_model = self.text_seq_layers.name == 'text_seq_layer_transformer'
 
         self.embedding_model = embedding_model
+
+    def _get_model_name(self):
+        return f"image_text_model_{self.image_base_model}_{self.embedding}"
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """

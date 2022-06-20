@@ -26,11 +26,11 @@ class BaseClassifier:
 
     Attributes
 
-    model_name(str): Name of the model.
+    model_name(str): Name of the model. This parameter can be updated by overriding method _get_model_name
     log_path(str): Path for storing the logs, which will be later uploaded into tensorboard to visualise the model
-                   performance.
+                   performance. Default: f"./logs/{self._get_model_name()}/"
     model_path(str): Path for storing the model weights. Once the model is trained, the weight will be available
-                     to load from ckpt files stored in this path.
+                     to load from ckpt files stored in this path. Default: f"./model/{self._get_model_name()}/weights/"
     learning_rate(float): Learning rate to be used in the training stage.
     epoch(int): Number of epoch to be used in the training stage.
     batch_size(int): The number of records to be inputted to the model at a time.
@@ -54,6 +54,22 @@ class BaseClassifier:
     def __init__(self, df_image: pd.DataFrame, df_product: pd.DataFrame):
         self.df_image = df_image
         self.df_product = df_product
+
+        self.model_name = self._get_model_name()
+
+        self.log_path: str = f"./logs/{self._get_model_name()}/"
+        self.model_path: str = f"./model/{self._get_model_name()}/weights/"
+
+    def _get_model_name(self) -> str:
+        """
+        Return the model name
+        This method optional to be implemented in child class.
+
+        Returns:
+            model name in str format
+
+        """
+        return "model"
 
     def process(self) -> None:
         """
@@ -125,7 +141,7 @@ class BaseClassifier:
         This method should be implemented in child class.
         """
         pass
-    
+
     def save_model(self):
         """
         Save weight of the trained model.

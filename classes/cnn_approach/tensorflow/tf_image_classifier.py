@@ -24,13 +24,9 @@ class TFImageClassifier(TFBaseClassifier):
         df_image (pd.DataFrame): Image dataframe
         df_product (pd.DataFrame): Product dataframe
 
-        model_name (str, optional): Name of the model.
         image_base_model (str, optional): Name of the image pre-trained model
 
         image_path (str, optional): Path to cache the image dataframe. Defaults to "./data/images/".
-        log_path (str, optional): Path to cache the training logs. Defaults to "./logs/image_model/".
-        model_path (str, optional): Path to cache the weight of the image model.
-                                    Defaults to "./model/image_model/weights/".
         transformed_image_path (str, optional): Path to save the preprocessed images.
                                                 Defaults to "./data/adjusted_img/" + image_shape[0].
 
@@ -59,12 +55,9 @@ class TFImageClassifier(TFBaseClassifier):
     df_product: pd.DataFrame
     df_image: pd.DataFrame
 
-    model_name: str = "image_model"
     image_base_model: str = "RestNet50"
 
     image_path: str = "./data/images/"
-    log_path: str = "./logs/image_model/"
-    model_path: str = "./model/image_model/weights/"
     transformed_image_path: str = "./data/adjusted_img/"
 
     batch_size = 32
@@ -83,6 +76,9 @@ class TFImageClassifier(TFBaseClassifier):
     transformed_image_path += str(image_shape[0]) + "/"
 
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
+
+    def _get_model_name(self):
+        return f"image_model_{self.image_base_model}"
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
@@ -424,3 +420,10 @@ class TFImageClassifier(TFBaseClassifier):
 
         super().save_model()
         self.image_seq_layers.save_weights(f"{self.model_path}img_seq_layers.ckpt")
+
+    def load_model(self):
+        """
+        Load weight of the trained model.
+        """
+        super().load_model()
+        self.image_seq_layers.load_weights(f"{self.model_path}img_seq_layers.ckpt").expect_partial()

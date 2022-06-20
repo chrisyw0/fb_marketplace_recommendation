@@ -25,11 +25,6 @@ class TFTextTransformerClassifier(TFBaseClassifier):
         df_product (pd.DataFrame): Product dataframe
 
         embedding (str, Optional): The type of embedding model. Defaults to "BERT".
-        model_name(str): Name of the model. Defaults to "text_model_" + embedding
-
-        log_path (str, optional): Path to cache the training logs. Defaults to "./logs/text_model/" + embedding.
-        model_path (str, optional): Path to cache the weight of the image model.
-                                    Defaults to "./model/text_model/{embedding}/weights/".
 
         embedding_dim (int, Optional): The vector size of embedding model. Defaults to 768.
         embedding_pretrain_model (str, Optional): Whether to use a pretrain model to encode the text. Please check
@@ -49,10 +44,6 @@ class TFTextTransformerClassifier(TFBaseClassifier):
     df_image: pd.DataFrame
 
     embedding: str = "BERT"
-    model_name = "text_model_" + embedding
-
-    log_path: str = "./logs/text_model/" + embedding
-    model_path: str = f"./model/text_model/{embedding}/weights/"
 
     embedding_dim: int = 768
     embedding_pretrain_model: str = "bert_en_cased_L-12_H-768_A-12"
@@ -64,9 +55,8 @@ class TFTextTransformerClassifier(TFBaseClassifier):
 
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
 
-    def __init__(self, df_image: pd.DataFrame, df_product: pd.DataFrame):
-        self.df_image = df_image
-        self.df_product = df_product
+    def _get_model_name(self):
+        return f"text_model_{self.embedding}"
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """

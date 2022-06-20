@@ -25,11 +25,6 @@ class TFTextClassifier(TFBaseClassifier):
         df_product (pd.DataFrame): Product dataframe
 
         embedding (str, Optional): The type of embedding model. Defaults to "Word2Vec".
-        model_name(str): Name of the model. Defaults to "text_model_" + embedding
-
-        log_path (str, optional): Path to cache the training logs. Defaults to "./logs/text_model/" + embedding.
-        model_path (str, optional): Path to cache the weight of the image model.
-                                    Defaults to "./model/text_model/{embedding}/weights/".
 
         embedding_dim (int, Optional): The vector size of embedding model. Defaults to 300.
         embedding_pretrain_model (str, Optional): Whether to use a pretrain model to encode the text.
@@ -56,10 +51,6 @@ class TFTextClassifier(TFBaseClassifier):
     df_image: pd.DataFrame
 
     embedding: str = "Word2Vec"
-    model_name = "text_model_" + embedding
-
-    log_path: str = "./logs/text_model/" + embedding
-    model_path: str = f"./model/text_model/{embedding}/weights/"
 
     embedding_dim: int = 300
     embedding_pretrain_model: str = None
@@ -76,9 +67,8 @@ class TFTextClassifier(TFBaseClassifier):
 
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
 
-    def __init__(self, df_image: pd.DataFrame, df_product: pd.DataFrame):
-        self.df_image = df_image
-        self.df_product = df_product
+    def _get_model_name(self):
+        return f"text_model_{self.embedding}"
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
@@ -454,3 +444,11 @@ class TFTextClassifier(TFBaseClassifier):
 
         super().save_model()
         self.text_seq_layers.save_weights(f"{self.model_path}text_seq_layers.ckpt")
+
+    def load_model(self):
+        """
+        Load the weight of the trained model.
+        """
+
+        super().load_model()
+        self.text_seq_layers.load_weights(f"{self.model_path}text_seq_layers.ckpt").expect_partial()
