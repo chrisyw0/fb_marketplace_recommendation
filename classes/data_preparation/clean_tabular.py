@@ -147,7 +147,6 @@ class TabularDataCleaner:
             tokens = tokenizer(text)
             return [token.text for token in list(tokens)], len(tokens)
 
-        
         def get_image_data(product_id: str) -> Optional[Tuple[List[np.ndarray], int]]:
             """
             Merge image data from image data frame
@@ -156,16 +155,16 @@ class TabularDataCleaner:
                 product_id (str): Product ID
 
             Returns:
-                Optional[Tuple[List[np.ndarray], int]]: None if image data is not existed in image dataframe or 
-                list of image (in Numpy array) and number of image 
+                Optional[Tuple[List[str], int]]: None if image data is not existed in image dataframe or
+                list of image path and number of image
             """
             df_this_image = self.df_image[self.df_image["product_id"] == product_id]
 
             try:
                 result = []
 
-                for _, image_data in df_this_image["image_pixel_data"].iteritems():
-                    result.append(image_data)
+                for _, image_file_path in df_this_image["adjust_image_file"].iteritems():
+                    result.append(image_file_path)
 
                 return result, len(result)
 
@@ -190,7 +189,7 @@ class TabularDataCleaner:
         df_product_clean["product_name_description_tokens"], df_product_clean["product_name_description_word_count"] = list(zip(*df_product_clean["product_name_description"].apply(get_tokens)))
 
         print("Mapping images to product")
-        df_product_clean["image_data"], df_product_clean["image_num"] = list(zip(*df_product_clean["id"].apply(get_image_data)))
+        df_product_clean["image_path"], df_product_clean["image_num"] = list(zip(*df_product_clean["id"].apply(get_image_data)))
 
         # remove temporary columns
         df_product_clean.drop(["product_name_temp", "product_description_temp", "category_temp"], axis=1, inplace=True)

@@ -64,15 +64,11 @@ class DatasetHelper:
             "id", "product_name", "category", "product_description", "product_name_description", \
             "location", "url", "page_id", "create_time", \
             "currency", "product_name_tokens", "product_description_tokens", "product_name_description_tokens", \
-            "product_name_description_word_count", "image_data", "root_category", "sub_category"],
+            "product_name_description_word_count", "image_path", "root_category", "sub_category"],
             axis=1, errors='ignore'
         )
 
         return df_product_reg
-
-    def generate_product_image_dataset(self):
-        # TODO: merge product and image dataset
-        pass
 
     def split_dataset(self, dataset: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """

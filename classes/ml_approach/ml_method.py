@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import PIL
 
 from sklearn import preprocessing
 from sklearn.linear_model import LinearRegression, LogisticRegression
@@ -89,8 +90,12 @@ class MachineLearningPredictor:
 
         # print(df_image_product.columns)
 
+        def _convert_image(path):
+            image = PIL.Image.open(path)
+            return np.asarray(image)
+
         # apply flattening to image data, making the data as features
-        image_data = df_image_product["image_pixel_data"].apply(lambda x: x.flatten()).tolist()
+        image_data = df_image_product["adjust_image_file"].apply(lambda x: _convert_image(x).flatten()).tolist()
         image_data = np.asarray(image_data)
         
         df_image_pixel = pd.DataFrame(image_data, columns=[f"pixel_{i}" for i in range(image_data.shape[1])])

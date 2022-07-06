@@ -1,5 +1,6 @@
+import os
+
 import PIL
-import numpy as np
 import pandas as pd
 import pickle
 
@@ -40,7 +41,12 @@ class ImageCleaner:
         
         return df_image_clean
 
-    def create_image_data(self, path: str, size: Tuple[int, int] = (144, 144)) -> pd.DataFrame:
+    def create_image_data(
+            self,
+            path: str,
+            transformed_img_path: str,
+            size: Tuple[int, int] = (300, 300)
+    ) -> pd.DataFrame:
         """
         Create extra features for image dataframe. The extra/modified features includes: 
         - image_data: Image data in numpy array, the shape is (width, height, 3) 
@@ -51,13 +57,16 @@ class ImageCleaner:
 
         Args:
             path (str): Folder path storing the images
+            transformed_img_path (str): Folder path storing the transformed images
             size (Tuple[int, int]): The image size to be transformed into numpy array
 
         Returns:
             pd.DataFrame: _description_
         """
+
+        dir_path = f"{transformed_img_path}{size[0]}/"
         
-        def get_image_information(image_id: str) -> Optional[Tuple[np.ndarray, int, int, float, str]]:
+        def get_image_information(image_id: str) -> Optional[Tuple[str, int, int, float, str]]:
             """
             Retrieve image meta data from the given image ID.
 
@@ -65,7 +74,7 @@ class ImageCleaner:
                 image_id (str): Image ID of the image
 
             Returns:
-                Optional[Tuple[np.ndarray, int, int, float, str]]: Image data, image width, image height, 
+                Optional[Tuple[str, int, int, float, str]]: Adjusted image file path, image width, image height,
                 width to height ratio and image mode or None if image is not existed
                 
             """
@@ -81,18 +90,22 @@ class ImageCleaner:
                 image.thumbnail(size, PIL.Image.LANCZOS)
                 image = ImageOps.pad(image, size=size, color=0, centering=(0.5, 0.5))
 
-                return np.asarray(image), image_size[0], image_size[1], image_size[0]/image_size[1], image_mode
+                file_path = f"{dir_path}{image_id}.jpg"
+                image.save(file_path)
 
-            except (FileNotFoundError, PIL.UnidentifiedImageError):
-                ...
-            
-            print(f"Image not found or invalid image")
+                return file_path, image_size[0], image_size[1], image_size[0]/image_size[1], image_mode
+
+            except (FileNotFoundError, PIL.UnidentifiedImageError) as e:
+                print(f"Image not found or invalid image " + e)
+
             return None
 
         df_image_clean = self.df_image.copy()
+
+        os.makedirs(dir_path, exist_ok=True)
         
         print("Converting images")
-        df_image_clean["image_pixel_data"], \
+        df_image_clean["adjust_image_file"], \
             df_image_clean["image_width"],\
             df_image_clean["image_height"], \
             df_image_clean["image_ratio"], \
@@ -119,7 +132,11 @@ class ImageCleaner:
             print(f"Reload from {clean_image_path} for clean image dataframe")
 
         except FileNotFoundError:
-            self.df_image = self.create_image_data(self.cached_path + "images/")
+            self.df_image = self.create_image_data(
+                self.cached_path + "images/",
+                self.cached_path + "adjusted_img/"
+            )
+
             df_image_clean = self.clean_image_data()
             
             with open(clean_image_path, "wb") as f:
