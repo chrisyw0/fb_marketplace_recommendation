@@ -1,4 +1,3 @@
-import torch
 import os
 import tempfile
 import PIL
@@ -12,8 +11,11 @@ from pathlib import Path
 
 
 class PTImageTextDataset(Dataset):
-    def __init__(self, images: Optional[List[str]], tokens: Optional[List[int]],
-                 image_root_path: Optional[str], image_shape: Optional[Tuple],
+    def __init__(self,
+                 images: Optional[List[str]],
+                 tokens: Optional[List[int]],
+                 image_root_path: Optional[str] = None,
+                 image_shape: Optional[Tuple] = None,
                  temp_img_path: Optional[str] = None,
                  labels: Optional[List[List[int]]] = None):
 
@@ -63,12 +65,12 @@ class PTImageTextDataset(Dataset):
             image = image.float()
 
         if self.tokens is not None:
-            text = torch.Tensor(self.tokens[idx])
+            text = self.tokens[idx]
 
         if self.labels is not None:
             label = self.labels[idx]
 
-        #         print(f"Get item for idx {idx} - Image: {image}, Text: {text}, Label: {label}")
+#         print(f"Get item for idx {idx} - Image: {image}, Text: {text}, Label: {label}")
 
         result = [image, text, label]
         result = list(filter(lambda a: a is not None, result))

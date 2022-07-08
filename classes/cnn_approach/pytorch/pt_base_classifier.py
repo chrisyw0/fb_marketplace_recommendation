@@ -25,7 +25,13 @@ class PTBaseClassifier(BaseClassifier):
         """
         Show model summary
         """
-        summary(self.model, self.input_shape) # not working for MPS
+        summary(
+            self.model,
+            self.input_shape,
+            dtypes=self.input_dtypes,
+            batch_dim=0,
+            device=pt_device
+        )
 
     def visualise_performance(self) -> None:
         """

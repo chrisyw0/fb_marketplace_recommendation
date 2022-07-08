@@ -107,6 +107,7 @@ class PTImageClassifier(PTBaseClassifier):
         self.num_class = len(self.classes)
 
         self.input_shape = (self.image_shape[2], self.image_shape[1], self.image_shape[0])
+        self.input_dtypes = [torch.float]
 
         # split dataset
         df_train, df_val, df_test = generator.split_dataset(df_image_data)
