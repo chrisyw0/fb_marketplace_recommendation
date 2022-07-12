@@ -17,6 +17,8 @@ pt_device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cud
 
 class PTBaseClassifier(BaseClassifier):
     device = pt_device
+    skip_summary = False
+
     """
     This is the tensorflow version of the BaseClassifier with several common methods implemented
     """
@@ -25,13 +27,15 @@ class PTBaseClassifier(BaseClassifier):
         """
         Show model summary
         """
-        summary(
-            self.model,
-            self.input_shape,
-            dtypes=self.input_dtypes,
-            batch_dim=0,
-            device=pt_device
-        )
+
+        if not self.skip_summary:
+            summary(
+                self.model,
+                self.input_shape,
+                dtypes=self.input_dtypes,
+                batch_dim=0,
+                device=pt_device
+            )
 
     def visualise_performance(self) -> None:
         """
@@ -83,6 +87,36 @@ class PTBaseClassifier(BaseClassifier):
         gc.collect()
 
 
+def _process_input_data(args, args_list):
+    x0 = args[0]
+
+    if len(args) > 2:
+        x1 = args[1]
+        inputs = {
+            "image": x0,
+            "text": x1
+        }
+
+        labels = args[2]
+
+    else:
+        if "image" in args_list:
+            inputs = {"image": x0}
+        elif "text" in args_list:
+            inputs = {"text": x0}
+
+        labels = args[1]
+
+    for key, value in inputs.items():
+        if isinstance(value, dict):
+            for sub_key, sub_value in inputs[key].items():
+                inputs[key][sub_key] = sub_value.to(pt_device)
+        else:
+            inputs[key] = value.to(pt_device)
+
+    return inputs, labels
+
+
 def train_and_validate_model(
         model,
         train_dl,
@@ -114,25 +148,7 @@ def train_and_validate_model(
             # zero the parameter gradients
             optimizer.zero_grad()
 
-            args = data
-            x0 = args[0].to(pt_device)
-
-            if len(args) > 2:
-                x1 = args[1].to(pt_device)
-                inputs = {
-                    "image": x0,
-                    "text": x1
-                }
-
-                labels = args[2]
-            else:
-                if "image" in args_list:
-                    inputs = {"image": x0}
-                elif "text" in args_list:
-                    inputs = {"text": x0}
-
-                labels = args[1]
-
+            inputs, labels = _process_input_data(data, args_list)
             outputs = model(**inputs)
 
             this_pred = F.softmax(outputs, dim=1)
@@ -167,24 +183,7 @@ def train_and_validate_model(
         val_actual_labels = []
 
         for i, data in enumerate(val_dl, 0):
-            args = data
-            x0 = args[0].to(pt_device)
-
-            if len(args) > 2:
-                x1 = args[1].to(pt_device)
-                inputs = {
-                    "image": x0,
-                    "text": x1
-                }
-
-                labels = args[2]
-            else:
-                if "image" in args_list:
-                    inputs = {"image": x0}
-                elif "text" in args_list:
-                    inputs = {"text": x0}
-
-                labels = args[1]
+            inputs, labels = _process_input_data(data, args_list)
 
             outputs = model(**inputs)
 
@@ -252,24 +251,7 @@ def evaluate_model(
     args_list = inspect.getfullargspec(model.forward).args
 
     for i, data in enumerate(test_dl, 0):
-        args = data
-        x0 = args[0].to(pt_device)
-
-        if len(args) > 2:
-            x1 = args[1].to(pt_device)
-            inputs = {
-                "image": x0,
-                "text": x1
-            }
-
-            labels = args[2]
-        else:
-            if "image" in args_list:
-                inputs = {"image": x0}
-            elif "text" in args_list:
-                inputs = {"text": x0}
-
-            labels = args[1]
+        inputs, labels = _process_input_data(data, args_list)
 
         outputs = model(**inputs)
         this_pred = outputs.cpu().detach().numpy()

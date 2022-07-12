@@ -12,6 +12,7 @@ geopy
 geopandas
 scikit-learn
 torchtext
+torchvision
 transformers
 tensorboard
 gensim

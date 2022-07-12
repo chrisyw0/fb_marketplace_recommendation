@@ -1,3 +1,4 @@
+import torch
 import os
 import tempfile
 import PIL
@@ -36,6 +37,10 @@ class PTImageTextDataset(Dataset):
         if self.images is not None:
             return len(self.images)
         else:
+            if isinstance(self.tokens, dict):
+                for key, value in self.tokens.items():
+                    return len(value)
+
             return len(self.tokens)
 
     def __getitem__(self, idx):
@@ -65,7 +70,10 @@ class PTImageTextDataset(Dataset):
             image = image.float()
 
         if self.tokens is not None:
-            text = self.tokens[idx]
+            if isinstance(self.tokens, dict):
+                text = {key: value[idx] for key, value in self.tokens.items()}
+            else:
+                text = self.tokens[idx]
 
         if self.labels is not None:
             label = self.labels[idx]

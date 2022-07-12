@@ -11,6 +11,7 @@ class PTImageTextUtil(ImageTextUtil):
     """
     This class is a subclass ImageTextUtil, provide utils functions for tensorflow model
     """
+
     @staticmethod
     def prepare_embedding_model(embedding: str,
                                 embedding_dim: int,
@@ -126,11 +127,13 @@ class PTImageTextUtil(ImageTextUtil):
         if isinstance(model, nn.Embedding):
             model.weight.requires_grad = True
         else:
+            total_layers = len(list(iter(model.parameters())))
+
             if num_trainable_layer == -1:
-                num_trainable_layer = len(model)
+                num_trainable_layer = total_layers
 
             for idx, param in enumerate(model.parameters()):
-                if idx > (len(model) - num_trainable_layer):
+                if idx > (total_layers - num_trainable_layer):
                     param.requires_grad = True
                 else:
                     param.requires_grad = False
