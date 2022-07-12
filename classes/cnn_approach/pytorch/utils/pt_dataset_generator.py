@@ -1,4 +1,3 @@
-import torch
 import os
 import tempfile
 import PIL
@@ -7,14 +6,14 @@ from PIL import ImageOps
 from torch.utils.data import Dataset
 from torchvision.io import read_image
 from torchvision.transforms import functional as TF
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union, Dict
 from pathlib import Path
 
 
 class PTImageTextDataset(Dataset):
     def __init__(self,
                  images: Optional[List[str]],
-                 tokens: Optional[List[int]],
+                 tokens: Optional[Union[List[int], Dict]],
                  image_root_path: Optional[str] = None,
                  image_shape: Optional[Tuple] = None,
                  temp_img_path: Optional[str] = None,

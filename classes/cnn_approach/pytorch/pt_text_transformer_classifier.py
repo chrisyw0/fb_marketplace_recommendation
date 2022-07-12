@@ -52,10 +52,11 @@ class PTTextTransformerClassifier(PTBaseClassifier):
 
     embedding_dim: int = 768
     embedding_pretrain_model: str = "bert-base-cased"
+    max_token_per_per_sentence: int = 512
 
     batch_size: int = 16
     dropout_pred: float = 0.5
-    epoch: int = 10
+    epoch: int = 20
     learning_rate: float = 2e-5
 
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
@@ -119,13 +120,12 @@ class PTTextTransformerClassifier(PTBaseClassifier):
 
         encoded_text = tokenizer.batch_encode_plus(
             text,
-            max_length=128,
             padding="max_length",
             truncation=True
         )
 
         self.skip_summary = True
-        self.input_shape = {key: (128,) for key in encoded_text.keys()}
+        self.input_shape = {key: (self.max_token_per_per_sentence,) for key in encoded_text.keys()}
         self.input_dtypes = [{key: torch.long for key in encoded_text.keys()}]
 
         encoded_text = {key: torch.LongTensor(value) for key, value in encoded_text.items()}
