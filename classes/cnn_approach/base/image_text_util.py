@@ -137,7 +137,7 @@ class ImageTextUtil:
             return model
 
     @staticmethod
-    def get_token_index(product_tokens: List[List[str]],
+    def get_token_index(product_tokens: List[str],
                         embedding: str,
                         model: Any,
                         extra_data: Any = None) -> List[List[int]]:

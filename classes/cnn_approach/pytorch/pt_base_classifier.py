@@ -5,11 +5,14 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 import torch.nn.functional as F
+import transformers
 
 from tqdm import tqdm
 from classes.cnn_approach.base.base_classifier import BaseClassifier
 from sklearn.metrics import classification_report
 from torchsummary import summary
+from typing import Tuple, Dict, Union, List
+from torch.utils.data import DataLoader
 
 
 pt_device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
@@ -18,6 +21,13 @@ pt_device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cud
 class PTBaseClassifier(BaseClassifier):
     device = pt_device
     skip_summary = False
+    input_shape: Union[Tuple, Dict]
+    input_dtypes: List
+    classes: List[str]
+    num_class: int
+    train_dl: DataLoader
+    val_dl: DataLoader
+    test_dl: DataLoader
 
     """
     This is the tensorflow version of the BaseClassifier with several common methods implemented
@@ -115,6 +125,25 @@ def _process_input_data(args, args_list):
             inputs[key] = value.to(pt_device)
 
     return inputs, labels
+
+
+def prepare_optimizer_and_scheduler(model, total_samples, batch_size, learning_rate, epoch):
+    optimizer = transformers.optimization.AdamW(
+        model.parameters(),
+        lr=learning_rate
+    )
+
+    steps_per_epoch = total_samples // batch_size
+
+    num_warmup_steps = int(steps_per_epoch * 0.1)
+    num_training_steps = steps_per_epoch * epoch
+
+    scheduler = transformers.get_polynomial_decay_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=num_warmup_steps,
+        num_training_steps=num_training_steps)
+
+    return optimizer, scheduler
 
 
 def train_and_validate_model(

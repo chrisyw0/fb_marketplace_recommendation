@@ -1,22 +1,19 @@
 import pandas as pd
 import torch
 import torch.nn as nn
-import transformers
 
 from typing import Tuple, List, Any
 from dataclasses import field
-from sklearn import preprocessing
 
 from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import DataLoader
-from torch.nn.utils.rnn import pad_sequence
 
 from classes.cnn_approach.pytorch.utils.pt_image_text_util import PTImageTextUtil
 from classes.cnn_approach.pytorch.pt_base_classifier import (
     PTBaseClassifier,
     train_and_validate_model,
     evaluate_model,
-    predict_model
+    predict_model,
+    prepare_optimizer_and_scheduler
 )
 from classes.cnn_approach.pytorch.utils.pt_dataset_generator import PTImageTextDataset
 from classes.data_preparation.prepare_dataset import DatasetHelper
@@ -88,7 +85,9 @@ class PTTextClassifier(PTBaseClassifier):
 
         # merge the image and product dataset
         generator = DatasetHelper(self.df_product, self.df_image)
-        df_image_data = generator.generate_image_product_dataset()
+        df_image_data, self.classes = generator.generate_image_product_dataset()
+
+        self.num_class = len(self.classes)
 
         # split by . to make a list of sentences for each product
         product_sentences = df_image_data['product_name_description'].to_list()
@@ -127,47 +126,23 @@ class PTTextClassifier(PTBaseClassifier):
             self.embedding_model
         )
 
+        print("Prepare training, validation and testing data")
+
         self.input_shape = (self.num_max_tokens,)
         self.input_dtypes = [torch.int]
 
-        print("Prepare training, validation and testing data")
-
-        # encode the label
-        le = preprocessing.LabelEncoder().fit(df_image_data["root_category"].unique())
-        category = le.transform(df_image_data["root_category"].tolist())
-
-        df_image_data['category'] = category
-
-        self.classes = le.classes_
-        self.num_class = len(self.classes)
-
         # split dataset
         df_train, df_val, df_test = generator.split_dataset(df_image_data)
-
-        # since we merge image with product dataframe, and some products have more than one
-        # images, we don't want the information leak from training dataset into validation and
-        # testing dataset, we should remove those from testing and validation datasets
-        df_val = df_val[~df_val["product_id"].isin(df_train['product_id'].to_list())]
-        df_test = df_test[~df_test["product_id"].isin(df_train['product_id'].to_list())]
 
         X_train = df_train['tokens_index'].to_list()
         X_val = df_val['tokens_index'].to_list()
         X_test = df_test['tokens_index'].to_list()
 
-        # add padding
-        text_with_padding = [torch.IntTensor(x) for x in X_train]
-        text_with_padding.extend([torch.IntTensor(x) for x in X_val])
-        text_with_padding.extend([torch.IntTensor(x) for x in X_test])
-
-        text_with_padding = pad_sequence(text_with_padding, True, 0)
-
-        X_train = text_with_padding[:len(X_train)]
-        X_val = text_with_padding[len(X_train):len(X_train) + len(X_val)]
-        X_test = text_with_padding[len(X_train) + len(X_val):]
-
-        y_train = df_train['category'].to_list()
-        y_val = df_val['category'].to_list()
-        y_test = df_test['category'].to_list()
+        X_train, X_val, X_test = PTImageTextUtil.prepare_token_with_padding(
+            (X_train, X_val, X_test),
+            self.embedding
+        )
+        y_train, y_val, y_test = generator.get_product_categories(df_train, df_val, df_test)
 
         train_ds = PTImageTextDataset(
             images=None,
@@ -187,29 +162,9 @@ class PTTextClassifier(PTBaseClassifier):
             labels=y_test
         )
 
-        self.train_dl = DataLoader(
-            train_ds,
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=0,
-            pin_memory=True
-        )
-
-        self.val_dl = DataLoader(
-            val_ds,
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=0,
-            pin_memory=True
-        )
-
-        self.test_dl = DataLoader(
-            test_ds,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=0,
-            pin_memory=True
-        )
+        self.train_dl = PTImageTextDataset.get_dataloader_from_dataset(train_ds, self.batch_size)
+        self.val_dl = PTImageTextDataset.get_dataloader_from_dataset(val_ds, self.batch_size)
+        self.test_dl = PTImageTextDataset.get_dataloader_from_dataset(test_ds, self.batch_size)
 
         return df_train, df_val, df_test
 
@@ -304,21 +259,13 @@ class PTTextClassifier(PTBaseClassifier):
         print("Start training")
         print("=" * 80)
 
-        optimizer = transformers.optimization.AdamW(
-            self.model.parameters(),
-            lr=self.learning_rate
+        optimizer, scheduler = prepare_optimizer_and_scheduler(
+            self.model,
+            len(self.train_dl.dataset),
+            self.batch_size,
+            self.learning_rate,
+            self.epoch
         )
-
-        total_samples = len(self.train_dl.dataset)
-        steps_per_epoch = total_samples // self.batch_size
-
-        num_warmup_steps = int(steps_per_epoch * 0.1)
-        num_training_steps = steps_per_epoch * self.epoch
-
-        scheduler = transformers.get_polynomial_decay_schedule_with_warmup(
-            optimizer,
-            num_warmup_steps=num_warmup_steps,
-            num_training_steps=num_training_steps)
 
         self.writer = SummaryWriter(log_dir=self.log_path)
 
@@ -352,21 +299,13 @@ class PTTextClassifier(PTBaseClassifier):
                 self.model.embedding_layer, -1
             )
 
-            optimizer = transformers.optimization.AdamW(
-                self.model.parameters(),
-                lr=self.fine_tune_learning_rate
+            optimizer, scheduler = prepare_optimizer_and_scheduler(
+                self.model,
+                len(self.train_dl.dataset),
+                self.batch_size,
+                self.fine_tune_learning_rate,
+                self.fine_tune_epoch
             )
-
-            total_samples = len(self.train_dl.dataset)
-            steps_per_epoch = total_samples // self.batch_size
-
-            num_warmup_steps = int(steps_per_epoch * 0.1)
-            num_training_steps = steps_per_epoch * self.epoch
-
-            scheduler = transformers.get_polynomial_decay_schedule_with_warmup(
-                optimizer,
-                num_warmup_steps=num_warmup_steps,
-                num_training_steps=num_training_steps)
 
             fine_tune_history = train_and_validate_model(
                 self.model,

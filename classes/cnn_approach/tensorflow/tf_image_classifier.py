@@ -95,29 +95,12 @@ class TFImageClassifier(TFBaseClassifier):
         # make comparison of the metrics
 
         generator = DatasetHelper(self.df_product, self.df_image)
-        df_image_data = generator.generate_image_product_dataset()
+        df_image_data, self.classes = generator.generate_image_product_dataset()
 
-        # encode the label
-        le = preprocessing.LabelEncoder().fit(df_image_data["root_category"].unique())
-        category = le.transform(df_image_data["root_category"].tolist())
-
-        df_image_data['category'] = category
-
-        self.classes = le.classes_
         self.num_class = len(self.classes)
 
         # split dataset
         df_train, df_val, df_test = generator.split_dataset(df_image_data)
-
-        # to sync with milestone 5, if a product contains 2 or more images and
-        # one of this is in training set, the others will also being put into
-        # the training set. This is to avoid the data leaking problem, for instance,
-        # the same product description is trained and tested in the text understanding model.
-        df_train = pd.concat([df_train, df_val[df_val["product_id"].isin(df_train['product_id'].to_list())]])
-        df_train = pd.concat([df_train, df_test[df_test["product_id"].isin(df_train['product_id'].to_list())]])
-
-        df_val = df_val[~df_val["product_id"].isin(df_train['product_id'].to_list())]
-        df_test = df_test[~df_test["product_id"].isin(df_train['product_id'].to_list())]
 
         y_train = df_train['category'].to_list()
         y_val = df_val['category'].to_list()

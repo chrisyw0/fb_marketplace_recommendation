@@ -1,17 +1,20 @@
 import pandas as pd
 import torch
 import torch.nn as nn
-import transformers
 
 from typing import Tuple, List, Any
-from sklearn import preprocessing
 from dataclasses import field
-from torch.utils.data import DataLoader
 from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 
 from classes.data_preparation.prepare_dataset import DatasetHelper
-from .pt_base_classifier import PTBaseClassifier, train_and_validate_model, evaluate_model, predict_model
+from .pt_base_classifier import (
+    PTBaseClassifier,
+    train_and_validate_model,
+    evaluate_model,
+    predict_model,
+    prepare_optimizer_and_scheduler
+)
 from classes.cnn_approach.pytorch.utils.pt_image_text_util import PTImageTextUtil
 from classes.cnn_approach.pytorch.utils.pt_dataset_generator import PTImageTextDataset
 
@@ -95,15 +98,8 @@ class PTImageClassifier(PTBaseClassifier):
         # it uses the same function as the machine learning model so it could
         # make comparison of the metrics
         generator = DatasetHelper(self.df_product, self.df_image)
-        df_image_data = generator.generate_image_product_dataset()
+        df_image_data, self.classes = generator.generate_image_product_dataset()
 
-        # encode the label
-        le = preprocessing.LabelEncoder().fit(df_image_data["root_category"].unique())
-        category = le.transform(df_image_data["root_category"].tolist())
-
-        df_image_data['category'] = category
-
-        self.classes = le.classes_
         self.num_class = len(self.classes)
 
         self.input_shape = (self.image_shape[2], self.image_shape[1], self.image_shape[0])
@@ -111,24 +107,8 @@ class PTImageClassifier(PTBaseClassifier):
 
         # split dataset
         df_train, df_val, df_test = generator.split_dataset(df_image_data)
-
-        # to sync with milestone 5, if a product contains 2 or more images and
-        # one of this is in training set, the others will also being put into
-        # the training set. This is to avoid the data leaking problem, for instance,
-        # the same product description is trained and tested in the text understanding model.
-        df_train = pd.concat([df_train, df_val[df_val["product_id"].isin(df_train['product_id'].to_list())]])
-        df_train = pd.concat([df_train, df_test[df_test["product_id"].isin(df_train['product_id'].to_list())]])
-
-        df_val = df_val[~df_val["product_id"].isin(df_train['product_id'].to_list())]
-        df_test = df_test[~df_test["product_id"].isin(df_train['product_id'].to_list())]
-
-        y_train = df_train['category'].to_list()
-        y_val = df_val['category'].to_list()
-        y_test = df_test['category'].to_list()
-
-        image_train = df_train['id_x'].to_list()
-        image_val = df_val['id_x'].to_list()
-        image_test = df_test['id_x'].to_list()
+        y_train, y_val, y_test = generator.get_product_categories(df_train, df_val, df_test)
+        image_train, image_val, image_test = generator.get_image_ids(df_train, df_val, df_test)
 
         train_ds = PTImageTextDataset(
             images=image_train,
@@ -157,29 +137,9 @@ class PTImageClassifier(PTBaseClassifier):
             labels=y_test
         )
 
-        self.train_dl = DataLoader(
-            train_ds,
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=0,
-            pin_memory=True
-        )
-
-        self.val_dl = DataLoader(
-            val_ds,
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=0,
-            pin_memory=True
-        )
-
-        self.test_dl = DataLoader(
-            test_ds,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=0,
-            pin_memory=True
-        )
+        self.train_dl = PTImageTextDataset.get_dataloader_from_dataset(train_ds, self.batch_size)
+        self.val_dl = PTImageTextDataset.get_dataloader_from_dataset(val_ds, self.batch_size)
+        self.test_dl = PTImageTextDataset.get_dataloader_from_dataset(test_ds, self.batch_size)
 
         return df_train, df_val, df_test
 
@@ -214,7 +174,7 @@ class PTImageClassifier(PTBaseClassifier):
                 super(PTImageModel, self).__init__()
                 self.transforms = nn.Sequential(
                     transforms.RandomHorizontalFlip(),
-                    #                     transforms.RandomRotation(72),
+#                     transforms.RandomRotation(72),
                     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
                 )
 
@@ -239,7 +199,7 @@ class PTImageClassifier(PTBaseClassifier):
                 x = self.image_base_model(x)
                 x = x.squeeze()
                 if x.dim() == 1:
-                    # if only one data in a batch, it add back the dimension
+                    # if only one data in a batch, it adds back the dimension
                     x = x.unsqueeze(0)
                 x = self.sequential_layer(x)
                 x = self.prediction_layer(x)
@@ -270,21 +230,13 @@ class PTImageClassifier(PTBaseClassifier):
         print("Start training")
         print("=" * 80)
 
-        optimizer = transformers.optimization.AdamW(
-            self.model.parameters(),
-            lr=self.learning_rate
+        optimizer, scheduler = prepare_optimizer_and_scheduler(
+            self.model,
+            len(self.train_dl.dataset),
+            self.batch_size,
+            self.learning_rate,
+            self.epoch
         )
-
-        total_samples = len(self.train_dl.dataset)
-        steps_per_epoch = total_samples // self.batch_size
-
-        num_warmup_steps = int(steps_per_epoch * 0.1)
-        num_training_steps = steps_per_epoch * self.epoch
-
-        scheduler = transformers.get_polynomial_decay_schedule_with_warmup(
-            optimizer,
-            num_warmup_steps=num_warmup_steps,
-            num_training_steps=num_training_steps)
 
         self.writer = SummaryWriter(log_dir=self.log_path)
 
@@ -317,21 +269,13 @@ class PTImageClassifier(PTBaseClassifier):
                 self.fine_tune_base_model_layers
             )
 
-            optimizer = transformers.optimization.AdamW(
-                self.model.parameters(),
-                lr=self.fine_tune_learning_rate
+            optimizer, scheduler = prepare_optimizer_and_scheduler(
+                self.model,
+                len(self.train_dl.dataset),
+                self.batch_size,
+                self.fine_tune_learning_rate,
+                self.fine_tune_epoch
             )
-
-            total_samples = len(self.train_dl.dataset)
-            steps_per_epoch = total_samples // self.batch_size
-
-            num_warmup_steps = int(steps_per_epoch * 0.1)
-            num_training_steps = steps_per_epoch * self.epoch
-
-            scheduler = transformers.get_polynomial_decay_schedule_with_warmup(
-                optimizer,
-                num_warmup_steps=num_warmup_steps,
-                num_training_steps=num_training_steps)
 
             fine_tune_history = train_and_validate_model(
                 self.model,
@@ -373,7 +317,7 @@ class PTImageClassifier(PTBaseClassifier):
         Predict with the model for records in a dataset.
 
         Args:
-            dataset (Optional, Any): Dataset contains images.
+            dataloader (Optional, Any): DataLoader contains datasets with images and category.
 
         Returns:
             List[int]: List of labels.

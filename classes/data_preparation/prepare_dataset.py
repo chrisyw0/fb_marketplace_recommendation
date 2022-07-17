@@ -1,6 +1,8 @@
 import pandas as pd
 import random
-from typing import Tuple
+
+from typing import Tuple, List
+from sklearn import preprocessing
 
 
 class DatasetHelper:
@@ -32,11 +34,12 @@ class DatasetHelper:
         self.val_size = val_size
         self.test_size = test_size
 
-    def generate_image_product_dataset(self) -> pd.DataFrame:
+    def generate_image_product_dataset(self) -> Tuple[pd.DataFrame, List[str]]:
         """
-        Generate an image and product set with joined features
+        Generate an image and product set with joined features, this will also encode the product category
         Returns:
             pd.DataFrame: The joined dataset in panda dataframe format
+            List[str]: The unique class name
 
         """
         df_image_product = pd.merge(self.df_image,
@@ -45,7 +48,12 @@ class DatasetHelper:
                                     left_on="product_id",
                                     right_on="id")
 
-        return df_image_product
+        le = preprocessing.LabelEncoder().fit(df_image_product["root_category"].unique())
+        category = le.transform(df_image_product["root_category"].tolist())
+
+        df_image_product['category'] = category
+
+        return df_image_product, le.classes_
 
     def generate_product_data(self) -> pd.DataFrame:
         """
@@ -98,4 +106,34 @@ class DatasetHelper:
 
         test_idx = full_idx[val_end_idx:]
 
-        return dataset.iloc[train_idx], dataset.iloc[val_idx], dataset.iloc[test_idx]
+        df_train, df_val, df_test = dataset.iloc[train_idx], dataset.iloc[val_idx], dataset.iloc[test_idx]
+
+        # To deal with multiple images associated with one product once the splitting process is completed
+        # it may happen one of this is in training set, the others will also being put into
+        # the validation or testing set. This is to avoid the data leaking problem of
+        # the same product description is trained and tested in the text understanding model.
+        df_train = pd.concat([df_train, df_val[df_val["product_id"].isin(df_train['product_id'].to_list())]])
+        df_train = pd.concat([df_train, df_test[df_test["product_id"].isin(df_train['product_id'].to_list())]])
+
+        df_val = df_val[~df_val["product_id"].isin(df_train['product_id'].to_list())]
+        df_test = df_test[~df_test["product_id"].isin(df_train['product_id'].to_list())]
+
+        return df_train, df_val, df_test
+
+    @staticmethod
+    def get_product_categories(df_train, df_val, df_test) -> Tuple[List[int], List[int], List[int]]:
+        y_train = df_train['category'].to_list()
+        y_val = df_val['category'].to_list()
+        y_test = df_test['category'].to_list()
+
+        return y_train, y_val, y_test
+
+    @staticmethod
+    def get_image_ids(df_train, df_val, df_test) -> Tuple[List[str], List[str], List[str]]:
+        image_train = df_train['id_x'].to_list()
+        image_val = df_val['id_x'].to_list()
+        image_test = df_test['id_x'].to_list()
+
+        return image_train, image_val, image_test
+
+

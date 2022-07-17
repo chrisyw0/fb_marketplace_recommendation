@@ -69,37 +69,23 @@ class TFTextTransformerClassifier(TFBaseClassifier):
 
         # merge the image and product dataset
         generator = DatasetHelper(self.df_product, self.df_image)
-        df_image_data = generator.generate_image_product_dataset()
+        df_image_data, self.classes = generator.generate_image_product_dataset()
 
         print("Prepare training, validation and testing data")
 
-        # encode the label
-        le = preprocessing.LabelEncoder().fit(df_image_data["root_category"].unique())
-        category = le.transform(df_image_data["root_category"].tolist())
-
         df_image_data['product_name_description'] = df_image_data["product_name_description"].apply(
             TFImageTextUtil.clean_text)
-        df_image_data['category'] = category
 
-        self.classes = le.classes_
         self.num_class = len(self.classes)
 
         # split dataset
         df_train, df_val, df_test = generator.split_dataset(df_image_data)
 
-        # since we merge image with product dataframe, and some products have more than one
-        # images, we don't want the information leak from training dataset into validation and
-        # testing dataset, we should remove those from testing and validation datasets
-        df_val = df_val[~df_val["product_id"].isin(df_train['product_id'].to_list())]
-        df_test = df_test[~df_test["product_id"].isin(df_train['product_id'].to_list())]
-
         X_train = df_train['product_name_description'].to_list()
         X_val = df_val['product_name_description'].to_list()
         X_test = df_test['product_name_description'].to_list()
 
-        y_train = df_train['category'].to_list()
-        y_val = df_val['category'].to_list()
-        y_test = df_test['category'].to_list()
+        y_train, y_val, y_test = generator.get_product_categories(df_train, df_val, df_test)
 
         # one hot encoded the category
         category_encoding_layer = tf.keras.layers.CategoryEncoding(

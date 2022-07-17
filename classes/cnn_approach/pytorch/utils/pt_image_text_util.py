@@ -1,3 +1,4 @@
+import pandas as pd
 import torch
 import torch.nn as nn
 
@@ -5,7 +6,7 @@ from transformers import BertTokenizer, BertModel
 from typing import List, Tuple, Any
 from classes.cnn_approach.base.image_text_util import ImageTextUtil
 from torchvision.models import resnet50, ResNet50_Weights, efficientnet_v2_s, efficientnet_v2_m
-
+from torch.nn.utils.rnn import pad_sequence
 
 class PTImageTextUtil(ImageTextUtil):
     """
@@ -137,3 +138,50 @@ class PTImageTextUtil(ImageTextUtil):
                     param.requires_grad = True
                 else:
                     param.requires_grad = False
+
+    @staticmethod
+    def prepare_token_with_padding(X: Tuple[List[int], List[int], List[int]], embedding):
+        X_train, X_val, X_test = X
+
+        if embedding == "Word2Vec":
+            # add padding
+            text_with_padding = [torch.IntTensor(x) for x in X_train]
+            text_with_padding.extend([torch.IntTensor(x) for x in X_val])
+            text_with_padding.extend([torch.IntTensor(x) for x in X_test])
+
+            text_with_padding = pad_sequence(text_with_padding, True, 0)
+
+            train_end_idx = len(X_train)
+            val_end_idx = len(X_train) + len(X_val)
+
+            X_train = text_with_padding[:train_end_idx]
+            X_val = text_with_padding[train_end_idx:val_end_idx]
+            X_test = text_with_padding[val_end_idx:]
+
+            return X_train, X_val, X_test
+
+    @staticmethod
+    def batch_encode_text(X: Tuple[List[str], List[str], List[str]], tokenizer):
+        X_train, X_val, X_test = X
+
+        train_end_idx = len(X_train)
+        val_end_idx = len(X_train) + len(X_val)
+
+        text = X_train
+        text.extend(X_val)
+        text.extend(X_test)
+
+
+        encoded_text = tokenizer.batch_encode_plus(
+            text,
+            padding="max_length",
+            truncation=True
+        )
+
+        encoded_text = {key: torch.LongTensor(value) for key, value in encoded_text.items()}
+
+        X_train = {key: value[:train_end_idx] for key, value in encoded_text.items()}
+        X_val = {key: value[train_end_idx:val_end_idx] for key, value in encoded_text.items()}
+        X_test = {key: value[val_end_idx:] for key, value in encoded_text.items()}
+
+        return X_train, X_val, X_test

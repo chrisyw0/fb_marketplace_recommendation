@@ -104,13 +104,7 @@ class TFImageTextClassifier(TFBaseClassifier):
 
         # merge the image and product dataset
         generator = DatasetHelper(self.df_product, self.df_image)
-        df_image_data = generator.generate_image_product_dataset()
-
-        # encode the label
-        le = preprocessing.LabelEncoder().fit(df_image_data["root_category"].unique())
-        category = le.transform(df_image_data["root_category"].tolist())
-
-        df_image_data['category'] = category
+        df_image_data, self.classes = generator.generate_image_product_dataset()
 
         if not self.is_transformer_based_text_model:
             token_input_key = 'tokens_index'
@@ -151,25 +145,16 @@ class TFImageTextClassifier(TFBaseClassifier):
 
         print("Prepare training, validation and testing data")
 
-        self.classes = le.classes_
         self.num_class = len(self.classes)
 
         # split dataset
         df_train, df_val, df_test = generator.split_dataset(df_image_data)
 
-        df_train = pd.concat([df_train, df_val[df_val["product_id"].isin(df_train['product_id'].to_list())]])
-        df_train = pd.concat([df_train, df_test[df_test["product_id"].isin(df_train['product_id'].to_list())]])
-
-        df_val = df_val[~df_val["product_id"].isin(df_train['product_id'].to_list())]
-        df_test = df_test[~df_test["product_id"].isin(df_train['product_id'].to_list())]
-
         X_train = df_train[token_input_key].to_list()
         X_val = df_val[token_input_key].to_list()
         X_test = df_test[token_input_key].to_list()
 
-        y_train = df_train['category'].to_list()
-        y_val = df_val['category'].to_list()
-        y_test = df_test['category'].to_list()
+        y_train, y_val, y_test = generator.get_product_categories(df_train, df_val, df_test)
 
         image_train = df_train['id_x'].to_list()
         image_val = df_val['id_x'].to_list()

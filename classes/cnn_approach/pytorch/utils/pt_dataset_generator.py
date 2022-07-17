@@ -3,7 +3,7 @@ import tempfile
 import PIL
 
 from PIL import ImageOps
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from torchvision.io import read_image
 from torchvision.transforms import functional as TF
 from typing import List, Tuple, Optional, Union, Dict
@@ -17,7 +17,7 @@ class PTImageTextDataset(Dataset):
                  image_root_path: Optional[str] = None,
                  image_shape: Optional[Tuple] = None,
                  temp_img_path: Optional[str] = None,
-                 labels: Optional[List[List[int]]] = None):
+                 labels: Optional[List[int]] = None):
 
         self.images = images
         self.tokens = tokens
@@ -59,8 +59,8 @@ class PTImageTextDataset(Dataset):
                 if image.mode != "RGB":
                     image = image.convert("RGB")
 
-                image.thumbnail(self.image_size, PIL.Image.LANCZOS)
-                image = ImageOps.pad(image, size=self.image_size, color=0, centering=(0.5, 0.5))
+                image.thumbnail(self.image_shape, PIL.Image.LANCZOS)
+                image = ImageOps.pad(image, size=self.image_shape, color=0, centering=(0.5, 0.5))
 
                 image.save(cache_path)
 
@@ -83,3 +83,13 @@ class PTImageTextDataset(Dataset):
         result = list(filter(lambda a: a is not None, result))
 
         return tuple(result)
+
+    @classmethod
+    def get_dataloader_from_dataset(cls, ds: Dataset, batch_size: int):
+        return DataLoader(
+            ds,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=0,
+            pin_memory=True
+        )
