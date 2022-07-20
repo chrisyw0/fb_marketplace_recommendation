@@ -169,7 +169,8 @@ class PTImageClassifier(PTBaseClassifier):
                     image_base_model,
                     image_shape,
                     dropout_conv,
-                    dropout_pred
+                    dropout_pred,
+                    base_model_output_dim
             ):
                 super(PTImageModel, self).__init__()
                 self.transforms = nn.Sequential(
@@ -185,7 +186,7 @@ class PTImageClassifier(PTBaseClassifier):
 
                 self.sequential_layer = nn.Sequential(
                     nn.Dropout(dropout_conv),
-                    nn.Linear(2048, 1024),
+                    nn.Linear(base_model_output_dim, 1024),
                     nn.ReLU(),
                     nn.Linear(1024, 256),
                     nn.ReLU(),
@@ -205,12 +206,18 @@ class PTImageClassifier(PTBaseClassifier):
                 x = self.prediction_layer(x)
                 return x
 
+        base_model_dim = {
+            "EfficientNetB3": 1280,
+            "RestNet50": 2048
+        }
+
         self.model = PTImageModel(
             self.num_class,
             self.image_base_model,
             self.image_shape,
             self.dropout_conv,
-            self.dropout_pred
+            self.dropout_pred,
+            base_model_dim.get(self.image_base_model, 2048)
         )
 
         self.model.to(self.device)
