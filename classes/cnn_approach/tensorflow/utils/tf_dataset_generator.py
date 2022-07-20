@@ -7,7 +7,10 @@ import os
 
 from typing import List, Tuple, Dict, Any, Generator, Optional
 from pathlib import Path
-from keras.preprocessing.sequence import pad_sequences
+try:
+    from keras.preprocessing.sequence import pad_sequences
+except ImportError:
+    from keras_preprocessing.sequence import pad_sequences
 
 
 class TFDatasetGenerator:

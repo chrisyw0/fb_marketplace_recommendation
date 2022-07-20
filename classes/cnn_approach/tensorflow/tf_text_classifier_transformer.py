@@ -5,7 +5,6 @@ import math
 
 from typing import Tuple, List, Any
 from dataclasses import field
-from sklearn import preprocessing
 from sklearn.metrics import classification_report
 from official.nlp import optimization  # to create AdamW optimizer
 
@@ -55,7 +54,7 @@ class TFTextTransformerClassifier(TFBaseClassifier):
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
 
     def _get_model_name(self):
-        return f"text_model_{self.embedding}"
+        return f"tf_text_model_{self.embedding}"
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """

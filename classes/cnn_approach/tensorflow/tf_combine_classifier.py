@@ -5,7 +5,6 @@ import math
 
 from typing import Tuple, List, Any, Optional
 from dataclasses import field
-from sklearn import preprocessing
 from sklearn.metrics import classification_report
 from official.nlp import optimization
 
@@ -90,7 +89,7 @@ class TFImageTextClassifier(TFBaseClassifier):
         self.embedding_model = embedding_model
 
     def _get_model_name(self):
-        return f"image_text_model_{self.image_base_model}_{self.embedding}"
+        return f"tf_image_text_model_{self.image_base_model}_{self.embedding}"
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """

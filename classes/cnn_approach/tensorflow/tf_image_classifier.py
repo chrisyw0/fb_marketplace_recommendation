@@ -5,7 +5,6 @@ import math
 
 from typing import Tuple, List, Any
 from sklearn.metrics import classification_report
-from sklearn import preprocessing
 from dataclasses import field
 from official.nlp import optimization
 
@@ -77,7 +76,7 @@ class TFImageClassifier(TFBaseClassifier):
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
 
     def _get_model_name(self):
-        return f"image_model_{self.image_base_model}"
+        return f"tf_image_model_{self.image_base_model}"
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """

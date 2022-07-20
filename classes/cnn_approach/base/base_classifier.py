@@ -55,11 +55,6 @@ class BaseClassifier:
         self.df_image = df_image
         self.df_product = df_product
 
-        self.model_name = self._get_model_name()
-
-        self.log_path: str = f"./logs/{self._get_model_name()}/"
-        self.model_path: str = f"./model/{self._get_model_name()}/weights/"
-
     def _get_model_name(self) -> str:
         """
         Return the model name
@@ -75,6 +70,12 @@ class BaseClassifier:
         """
         The entry point of the process. It runs through all required steps of training and testing stage.
         """
+
+        self.model_name = self._get_model_name()
+
+        self.log_path: str = f"./logs/{self._get_model_name()}/"
+        self.model_path: str = f"./model/{self._get_model_name()}/weights/"
+
         self.prepare_data()
         self.create_model()
         self.show_model_summary()
