@@ -5,16 +5,23 @@ import copy
 
 from typing import Tuple, List, Any, Optional
 from dataclasses import field
-from sklearn.metrics import classification_report
 from torchvision import transforms
+from torch.utils.tensorboard import SummaryWriter
 
-from classes.cnn_approach.pytorch.utils.pt_image_text_util import PTImageTextUtil
-from classes.cnn_approach.pytorch.pt_base_classifier import PTBaseClassifier
+from classes.cnn_approach.pytorch.utils.pt_image_text_util import PTImageTextUtil\
+from .pt_base_classifier import (
+    PTBaseClassifier,
+    train_and_validate_model,
+    evaluate_model,
+    predict_model,
+    prepare_optimizer_and_scheduler
+)
+
 from classes.cnn_approach.pytorch.utils.pt_dataset_generator import PTImageTextDataset
 from classes.data_preparation.prepare_dataset import DatasetHelper
 
 
-class PTTextTransformerClassifier(PTBaseClassifier):
+class PTImageTextClassifier(PTBaseClassifier):
     """
     A deep learning model predicting product category from its image, name and description.
 
@@ -76,6 +83,7 @@ class PTTextTransformerClassifier(PTBaseClassifier):
                  image_base_model: Any,
                  image_seq_layers: Any,
                  text_seq_layers: Any,
+                 is_transformer_based_text_model,
                  embedding_model: Optional[Any]
                  ):
 
@@ -84,7 +92,7 @@ class PTTextTransformerClassifier(PTBaseClassifier):
         self.image_seq_layers = copy.deepcopy(image_seq_layers)
         self.text_seq_layers = copy.deepcopy(text_seq_layers)
         self.image_base_model = copy.deepcopy(image_base_model)
-        self.is_transformer_based_text_model = self.text_seq_layers.name == 'text_seq_layer_transformer'
+        self.is_transformer_based_text_model = is_transformer_based_text_model
 
         self.embedding_model = embedding_model
 
@@ -252,7 +260,7 @@ class PTTextTransformerClassifier(PTBaseClassifier):
                 super(PTImageTextModel, self).__init__()
                 self.transforms = nn.Sequential(
                     transforms.RandomHorizontalFlip(),
-                    # transforms.RandomRotation(72),
+                    transforms.RandomRotation(72),
                     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
                 )
 
@@ -305,23 +313,26 @@ class PTTextTransformerClassifier(PTBaseClassifier):
         and these logs can then be uploaded to TensorBoard.dev
         """
 
-        print("Start training")
-
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(
-            log_dir=self.log_path,
-            histogram_freq=1,
-            write_graph=False
+        optimizer, scheduler = prepare_optimizer_and_scheduler(
+            self.model,
+            len(self.train_dl.dataset),
+            self.batch_size,
+            self.learning_rate,
+            self.epoch
         )
 
-        self.history = self.model.fit(self.ds_train,
-                                      batch_size=self.batch_size,
-                                      epochs=self.epoch,
-                                      validation_data=self.ds_val,
-                                      callbacks=[
-                                          tensorboard_callback
-                                      ])
+        self.writer = SummaryWriter(log_dir=self.log_path)
 
-        print("Finish training")
+        self.history = train_and_validate_model(
+            self.model,
+            self.train_dl,
+            self.val_dl,
+            criterion=nn.CrossEntropyLoss(),
+            epoch=self.epoch,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            summary_writer=self.writer
+        )
 
     def evaluate_model(self) -> Tuple[float, float]:
         """
@@ -334,38 +345,25 @@ class PTTextTransformerClassifier(PTBaseClassifier):
 
         """
 
-        prediction = self.model.predict(self.ds_test,
-                                        batch_size=self.batch_size)
+        return evaluate_model(
+            self.model,
+            self.test_dl,
+            nn.CrossEntropyLoss(),
+            self.classes
+        )
 
-        y_true = [np.argmax(z) for z in self.y_test]
-        y_pred = [np.argmax(x) for x in prediction]
-
-        report = classification_report(y_true, y_pred, target_names=self.classes)
-        print(report)
-
-        loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-        loss = loss_fn(self.y_test, prediction)
-
-        accuracy = sum([y_true[i] == y_pred[i] for i in range(len(y_true))]) / len(y_true)
-
-        return loss, accuracy
-
-    def predict_model(self, data: Any) -> List[int]:
+    def predict_model(self, dataloader: Any) -> List[int]:
         """
         Predict with the model for records in the dataset.
 
         Args:
-            data: It should be a dataset created with TFImageModelDatasetGenerator. Please check prepare_data to
-                  see how to create the dataset from the model.
+            dataloader (Optional, Any): DataLoader contains datasets with images, text and category.
 
         Returns:
             List[int]: List of labels
 
         """
 
-        prediction = self.model.predict(data,
-                                        batch_size=self.batch_size)
-
-        y_pred = [np.argmax(x) for x in prediction]
-
-        return y_pred
+        return predict_model(
+            self.model, dataloader
+        )

@@ -3,7 +3,6 @@ import torch.nn as nn
 
 from typing import Tuple, List, Any
 from dataclasses import field
-
 from torch.utils.tensorboard import SummaryWriter
 
 from classes.cnn_approach.pytorch.utils.pt_image_text_util import PTImageTextUtil
