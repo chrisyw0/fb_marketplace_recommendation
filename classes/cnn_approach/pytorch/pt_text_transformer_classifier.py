@@ -59,7 +59,7 @@ class PTTextTransformerClassifier(PTBaseClassifier):
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
 
     def _get_model_name(self):
-        return f"text_model_{self.embedding}"
+        return f"pt_text_model_{self.embedding}"
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """

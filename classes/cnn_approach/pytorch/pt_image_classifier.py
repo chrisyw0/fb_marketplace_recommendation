@@ -81,7 +81,7 @@ class PTImageClassifier(PTBaseClassifier):
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
 
     def _get_model_name(self):
-        return f"image_model_{self.image_base_model}"
+        return f"pt_image_model_{self.image_base_model}"
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
