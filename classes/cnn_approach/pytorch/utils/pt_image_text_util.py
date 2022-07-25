@@ -5,7 +5,14 @@ import torch.nn as nn
 from transformers import BertTokenizer, BertModel
 from typing import List, Tuple, Any
 from classes.cnn_approach.base.image_text_util import ImageTextUtil
-from torchvision.models import resnet50, ResNet50_Weights, efficientnet_v2_s, efficientnet_v2_m
+from torchvision.models import (
+    resnet50,
+    ResNet50_Weights,
+    efficientnet_v2_s,
+    efficientnet_v2_m,
+    EfficientNet_V2_S_Weights,
+    EfficientNet_V2_M_Weights
+)
 from torch.nn.utils.rnn import pad_sequence
 
 class PTImageTextUtil(ImageTextUtil):
@@ -99,12 +106,12 @@ class PTImageTextUtil(ImageTextUtil):
             model = torch.nn.Sequential(*(list(model.children())[:-1]))
 
         elif model_name == "EfficientNetB0":
-            model = efficientnet_v2_s()
+            model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights.DEFAULT)
             # remove final layer
             model = torch.nn.Sequential(*(list(model.children())[:-1]))
 
         elif model_name == "EfficientNetB3":
-            model = efficientnet_v2_m()
+            model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights.DEFAULT)
             # remove final layer
             model = torch.nn.Sequential(*(list(model.children())[:-1]))
 
