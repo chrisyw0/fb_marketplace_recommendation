@@ -207,6 +207,7 @@ class PTImageClassifier(PTBaseClassifier):
                 return x
 
         base_model_dim = {
+            "EfficientNetB0": 1280,
             "EfficientNetB3": 1280,
             "RestNet50": 2048
         }
