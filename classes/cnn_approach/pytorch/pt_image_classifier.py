@@ -343,6 +343,7 @@ class PTImageClassifier(PTBaseClassifier):
 
         super().save_model()
         torch.save(self.model.sequential_layer.state_dict(), f"{self.model_path}image_seq_layers.pt")
+        torch.save(self.model.image_base_model.state_dict(), f"{self.model_path}image_base_model.pt")
 
     def load_model(self):
         """
@@ -350,3 +351,4 @@ class PTImageClassifier(PTBaseClassifier):
         """
         super().load_model()
         self.model.image_seq_layers.load_state_dict(torch.load(f"{self.model_path}image_seq_layers.pt"))
+        self.model.image_base_model.load_state_dict(torch.load(f"{self.model_path}image_base_model.pt"))

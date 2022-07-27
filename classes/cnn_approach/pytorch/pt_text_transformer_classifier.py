@@ -1,4 +1,5 @@
 import pandas as pd
+import torch
 import torch.nn as nn
 
 from typing import Tuple, List, Any
@@ -52,7 +53,7 @@ class PTTextTransformerClassifier(PTBaseClassifier):
 
     batch_size: int = 16
     dropout_pred: float = 0.5
-    epoch: int = 20
+    epoch: int = 5
     learning_rate: float = 2e-5
 
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
@@ -267,3 +268,21 @@ class PTTextTransformerClassifier(PTBaseClassifier):
         return predict_model(
             self.model, dataloader
         )
+
+
+    def save_model(self):
+        """
+        Save weight of the trained model.
+        """
+
+        super().save_model()
+        torch.save(self.model.sequential_layer.state_dict(), f"{self.model_path}text_seq_layers.pt")
+        torch.save(self.model.embedding_layer.state_dict(), f"{self.model_path}embedding_layer.pt")
+
+    def load_model(self):
+        """
+        Load weight of the trained model.
+        """
+        super().load_model()
+        self.model.sequential_layer.load_state_dict(torch.load(f"{self.model_path}text_seq_layers.pt"))
+        self.model.embedding_layer.load_state_dict(torch.load(f"{self.model_path}image_base_model.pt"))
