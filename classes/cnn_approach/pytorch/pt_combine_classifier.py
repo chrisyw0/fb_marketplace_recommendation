@@ -8,7 +8,7 @@ from dataclasses import field
 from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 
-from classes.cnn_approach.pytorch.utils.pt_image_text_util import PTImageTextUtil\
+from classes.cnn_approach.pytorch.utils.pt_image_text_util import PTImageTextUtil
 from .pt_base_classifier import (
     PTBaseClassifier,
     train_and_validate_model,
@@ -32,7 +32,7 @@ class PTImageTextClassifier(PTBaseClassifier):
         image_seq_layers (tf.keras.Model): The trained image model (without preprocessing and prediction layer).
         text_seq_layers (tf.keras.Model): The trained text model (without preprocessing and prediction layer).
 
-        image_base_model (str, optional): Name of the image pre-trained model. Defaults to "EfficientNetB3"
+        image_base_model_name (str, optional): Name of the image pre-trained model. Defaults to "EfficientNetB3"
         embedding (str, Optional): The type of embedding model. Defaults to "Word2Vec".
 
         embedding_pretrain_model (str, Optional): Whether to use a pretrain model to encode the text.
@@ -58,7 +58,7 @@ class PTImageTextClassifier(PTBaseClassifier):
     df_product: pd.DataFrame
     df_image: pd.DataFrame
 
-    image_base_model: str = "EfficientNetB3"
+    image_base_model_name: str = "EfficientNetB3"
     embedding: str = "BERT"
     embedding_dim: int = 768
     max_token_per_per_sentence: int = 512
@@ -66,7 +66,7 @@ class PTImageTextClassifier(PTBaseClassifier):
     image_path: str = "./data/images/"
     transformed_image_path: str = "./data/adjusted_img/"
 
-    embedding_pretrain_model: str = None
+    embedding_pretrain_model: str = "bert-base-cased"
 
     image_shape: Tuple[int, int, int] = (300, 300, 3)
     transformed_image_path += str(image_shape[0]) + "/"
@@ -97,7 +97,7 @@ class PTImageTextClassifier(PTBaseClassifier):
         self.embedding_model = embedding_model
 
     def _get_model_name(self):
-        return f"pt_image_text_model_{self.image_base_model}_{self.embedding}"
+        return f"pt_image_text_model_{self.image_base_model_name}_{self.embedding}"
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
@@ -186,9 +186,9 @@ class PTImageTextClassifier(PTBaseClassifier):
             # split dataset
             df_train, df_val, df_test = generator.split_dataset(df_image_data)
 
-            X_train = df_train['tokens_index'].to_list()
-            X_val = df_val['tokens_index'].to_list()
-            X_test = df_test['tokens_index'].to_list()
+            X_train = df_train['product_name_description'].to_list()
+            X_val = df_val['product_name_description'].to_list()
+            X_test = df_test['product_name_description'].to_list()
 
             X_train, X_val, X_test = PTImageTextUtil.batch_encode_text((X_train, X_val, X_test), tokenizer)
 
@@ -206,18 +206,27 @@ class PTImageTextClassifier(PTBaseClassifier):
         train_ds = PTImageTextDataset(
             images=image_train,
             tokens=X_train,
+            image_root_path=self.image_path,
+            image_shape=self.image_shape,
+            temp_img_path=self.transformed_image_path,
             labels=y_train
         )
 
         val_ds = PTImageTextDataset(
             images=image_val,
             tokens=X_val,
+            image_root_path=self.image_path,
+            image_shape=self.image_shape,
+            temp_img_path=self.transformed_image_path,
             labels=y_val
         )
 
         test_ds = PTImageTextDataset(
             images=image_test,
             tokens=X_test,
+            image_root_path=self.image_path,
+            image_shape=self.image_shape,
+            temp_img_path=self.transformed_image_path,
             labels=y_test
         )
 
@@ -282,7 +291,7 @@ class PTImageTextClassifier(PTBaseClassifier):
                 x_img = self.image_seq_layers(x_img)
 
                 if self.text_embedding_layer:
-                    x_text = self.embedding_layer(**text)["pooler_output"]
+                    x_text = self.text_embedding_layer(**text)["pooler_output"]
                 else:
                     x_text = text
 

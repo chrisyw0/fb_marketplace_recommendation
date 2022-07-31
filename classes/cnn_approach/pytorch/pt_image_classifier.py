@@ -350,5 +350,5 @@ class PTImageClassifier(PTBaseClassifier):
         Load weight of the trained model.
         """
         super().load_model()
-        self.model.image_seq_layers.load_state_dict(torch.load(f"{self.model_path}image_seq_layers.pt"))
+        self.model.sequential_layer.load_state_dict(torch.load(f"{self.model_path}image_seq_layers.pt"))
         self.model.image_base_model.load_state_dict(torch.load(f"{self.model_path}image_base_model.pt"))

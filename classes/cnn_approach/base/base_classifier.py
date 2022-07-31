@@ -86,6 +86,12 @@ class BaseClassifier:
         self.visualise_performance()
         self.clean_up()
 
+    def process_load_model(self):
+        self.model_name = self._get_model_name()
+
+        self.log_path: str = f"./logs/{self._get_model_name()}/"
+        self.model_path: str = f"./model/{self._get_model_name()}/weights/"
+
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
         Create features, normalise data, and split data into training, validation and testing dataset.
