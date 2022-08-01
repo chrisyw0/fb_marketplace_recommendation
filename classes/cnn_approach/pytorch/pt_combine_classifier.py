@@ -84,7 +84,7 @@ class PTImageTextClassifier(PTBaseClassifier):
                  image_seq_layers: Any,
                  text_seq_layers: Any,
                  is_transformer_based_text_model,
-                 embedding_model: Optional[Any]
+                 text_embedding_layer: Optional[Any]
                  ):
 
         super().__init__(df_image, df_product)
@@ -94,7 +94,7 @@ class PTImageTextClassifier(PTBaseClassifier):
         self.image_base_model = copy.deepcopy(image_base_model)
         self.is_transformer_based_text_model = is_transformer_based_text_model
 
-        self.embedding_model = embedding_model
+        self.text_embedding_layer = text_embedding_layer
 
     def _get_model_name(self):
         return f"pt_image_text_model_{self.image_base_model_name}_{self.embedding}"
@@ -132,27 +132,13 @@ class PTImageTextClassifier(PTBaseClassifier):
                 with_symbol
             )
 
-            print(f"Creating a {self.embedding} model, " \
-                  f"dimension {self.embedding_dim}, " \
-                  f"pre-train model {self.embedding_pretrain_model}")
-
-            # create and train the embedding model
-            self.embedding_model = PTImageTextUtil.prepare_embedding_model(
-                embedding=self.embedding,
-                embedding_dim=self.embedding_dim,
-                training_data=training_data,
-                pretrain_model=self.embedding_pretrain_model
-            )
-
-            self.text_embedding_layer = None
-
             print("Getting index from the embedding model")
 
             # convert token into token index in embedding model weight matrix
             df_image_data['tokens_index'] = PTImageTextUtil.get_token_index(
                 product_tokens,
                 self.embedding,
-                self.embedding_model
+                self.text_embedding_layer
             )
 
             self.input_shape = {
@@ -176,7 +162,7 @@ class PTImageTextClassifier(PTBaseClassifier):
             df_image_data['product_name_description'] = df_image_data["product_name_description"].apply(
                 PTImageTextUtil.clean_text)
 
-            self.text_embedding_layer, tokenizer = PTImageTextUtil.prepare_embedding_model(
+            _, tokenizer = PTImageTextUtil.prepare_embedding_model(
                 embedding=self.embedding,
                 embedding_dim=self.embedding_dim,
                 pretrain_model=self.embedding_pretrain_model,
@@ -196,7 +182,6 @@ class PTImageTextClassifier(PTBaseClassifier):
             self.skip_summary = True
             self.input_shape = {key: (self.max_token_per_per_sentence,) for key in X_train.keys()}
             self.input_dtypes = [{key: torch.long for key in X_train.keys()}]
-
 
         print("Prepare training, validation and testing data")
 
@@ -264,7 +249,8 @@ class PTImageTextClassifier(PTBaseClassifier):
                     image_base_model,
                     image_seq_layers,
                     text_embedding_layer,
-                    text_seq_layers
+                    text_seq_layers,
+                    is_transformer_based_text_model
             ):
                 super(PTImageTextModel, self).__init__()
                 self.transforms = nn.Sequential(
@@ -279,6 +265,8 @@ class PTImageTextClassifier(PTBaseClassifier):
                 self.text_embedding_layer = text_embedding_layer
                 self.text_seq_layers = text_seq_layers
 
+                self.is_transformer_based_text_model = is_transformer_based_text_model
+
                 self.prediction_layer = nn.Linear(512, num_class)
 
             def forward(self, image, text):
@@ -290,10 +278,10 @@ class PTImageTextClassifier(PTBaseClassifier):
                     x_img = x_img.unsqueeze(0)
                 x_img = self.image_seq_layers(x_img)
 
-                if self.text_embedding_layer:
+                if self.is_transformer_based_text_model:
                     x_text = self.text_embedding_layer(**text)["pooler_output"]
                 else:
-                    x_text = text
+                    x_text = self.text_embedding_layer(text)
 
                 x_text = self.text_seq_layers(x_text)
 
@@ -307,7 +295,8 @@ class PTImageTextClassifier(PTBaseClassifier):
             self.image_base_model,
             self.image_seq_layers,
             self.text_embedding_layer,
-            self.text_seq_layers
+            self.text_seq_layers,
+            self.is_transformer_based_text_model
         )
 
         self.model.to(self.device)
