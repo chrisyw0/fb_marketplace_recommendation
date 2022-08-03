@@ -14,7 +14,6 @@ from torchsummary import summary
 from typing import Tuple, Dict, Union, List
 from torch.utils.data import DataLoader
 
-
 pt_device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -214,20 +213,22 @@ def train_and_validate_model(
         for i, data in enumerate(val_dl, 0):
             inputs, labels = _process_input_data(data, args_list)
 
-            outputs = model(**inputs)
+            with torch.no_grad():
+                outputs = model(**inputs)
 
-            this_pred = F.softmax(outputs, dim=1)
-            this_pred = this_pred.cpu().detach().numpy()
+                this_pred = F.softmax(outputs, dim=1)
+                this_pred = this_pred.cpu().detach().numpy()
 
-            val_pred_labels.extend([np.argmax(x) for x in this_pred])
+                val_pred_labels.extend([np.argmax(x) for x in this_pred])
 
-            actual_labels = labels.cpu().detach().tolist()
-            val_actual_labels.extend(actual_labels)
+                actual_labels = labels.cpu().detach().tolist()
+                val_actual_labels.extend(actual_labels)
 
-            labels = labels.to(pt_device)
-            loss = criterion(outputs, labels)
+                labels = labels.to(pt_device)
+                loss = criterion(outputs, labels)
 
-            running_val_loss += loss.item()
+                running_val_loss += loss.item()
+
             count += 1
 
         val_loss = running_val_loss / count
@@ -282,17 +283,18 @@ def evaluate_model(
     for i, data in enumerate(test_dl, 0):
         inputs, labels = _process_input_data(data, args_list)
 
-        outputs = model(**inputs)
-        this_pred = outputs.cpu().detach().numpy()
+        with torch.no_grad():
+            outputs = model(**inputs)
+            this_pred = outputs.cpu().detach().numpy()
 
-        test_pred_labels.extend([np.argmax(x) for x in this_pred])
-        actual_labels = labels.cpu().detach().tolist()
-        test_actual_labels.extend(actual_labels)
+            test_pred_labels.extend([np.argmax(x) for x in this_pred])
+            actual_labels = labels.cpu().detach().tolist()
+            test_actual_labels.extend(actual_labels)
 
-        labels = labels.to(pt_device)
+            labels = labels.to(pt_device)
 
-        loss = criterion(outputs, labels)
-        running_test_loss += loss.item()
+            loss = criterion(outputs, labels)
+            running_test_loss += loss.item()
 
         count += 1
 

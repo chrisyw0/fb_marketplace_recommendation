@@ -17,6 +17,8 @@ from classes.cnn_approach.pytorch.pt_base_classifier import (
 from classes.cnn_approach.pytorch.utils.pt_dataset_generator import PTImageTextDataset
 from classes.data_preparation.prepare_dataset import DatasetHelper
 
+from transformers import AutoModel
+
 
 class PTTextTransformerClassifier(PTBaseClassifier):
     """
@@ -277,7 +279,7 @@ class PTTextTransformerClassifier(PTBaseClassifier):
 
         super().save_model()
         torch.save(self.model.sequential_layer.state_dict(), f"{self.model_path}text_seq_layers.pt")
-        torch.save(self.model.embedding_layer.state_dict(), f"{self.model_path}embedding_layer.pt")
+        self.model.embedding_layer.save_pretrained(f"{self.model_path}embedding_layer")
 
     def load_model(self):
         """
@@ -285,4 +287,4 @@ class PTTextTransformerClassifier(PTBaseClassifier):
         """
         super().load_model()
         self.model.sequential_layer.load_state_dict(torch.load(f"{self.model_path}text_seq_layers.pt"))
-        self.model.embedding_layer.load_state_dict(torch.load(f"{self.model_path}embedding_layer.pt"))
+        self.model.embedding_layer = AutoModel.from_pretrained(f"{self.model_path}embedding_layer")
