@@ -15,7 +15,7 @@ class ImageTextUtil:
     """
 
     @staticmethod
-    def clean_text(text: str, remove_stop_words: bool = False):
+    def clean_text(text: str, remove_stop_words: bool = False) -> str:
         """
         Remove emoji, tab, new line and spaces in the text
         Args:
@@ -23,7 +23,8 @@ class ImageTextUtil:
             remove_stop_words: Whether to remove stop words from the text
 
         Returns:
-            Cleaned text
+            str:
+                Cleaned text
 
         """
         result_text = emoji.replace_emoji(text, replace='')
@@ -38,7 +39,7 @@ class ImageTextUtil:
         return result_text
 
     @staticmethod
-    def tokenise(product_sentences: List[List[str]],
+    def tokenise(product_sentences: List[str],
                  embedding: str,
                  with_symbol: bool = False,
                  pre_trained_model: str = None) -> Tuple[List[str], Any, int]:
@@ -135,6 +136,22 @@ class ImageTextUtil:
             model.save(f"./model/{embedding}/{embedding}.model")
 
             return model
+
+    @staticmethod
+    def load_embedding_model(embedding: str) -> Any:
+        """
+        Load the gensim model from saved path
+        Args:
+            embedding: embedding method name
+
+        Returns:
+            Any: Embedding model.
+        """
+        if embedding == 'Word2Vec':
+            model = Word2Vec.load(f"./model/{embedding}/{embedding}.model")
+            return model
+
+        raise ValueError(f"model not found for embedding method {embedding}")
 
     @staticmethod
     def get_token_index(product_tokens: List[str],

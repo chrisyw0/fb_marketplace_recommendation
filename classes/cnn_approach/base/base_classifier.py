@@ -7,19 +7,21 @@ class BaseClassifier:
     This is the base class of our deep learning model which provides interface for
     methods and attributes, and standard methods.
 
-    It contains the following majors methods, which should be implemented in the subclass:
+    It contains the following majors methods, some of them should be implemented in the subclass:
     1. prepare_data - Input product and image data and get the training, validation and testing dataset.
-    2. create_model - Create a deep learning model according to the input data shape and other configuration
-    3. show_model_summary - Show the summary of the model, as well as export the model graph.
-    4. train_model - Train the model with training dataset, and validate it with validation dataset.
-    5. fine_tune_model - Fine tune the model with the same dataset, unfreeze some layers and change the learning rate
+    2. process_load_model - Set up essential parameters before loading a model, this should be the first step for load
+                            model process.
+    3. create_model - Create a deep learning model according to the input data shape and other configuration
+    4. show_model_summary - Show the summary of the model, as well as export the model graph.
+    5. train_model - Train the model with training dataset, and validate it with validation dataset.
+    6. fine_tune_model - Fine tune the model with the same dataset, unfreeze some layers and change the learning rate
                          if necessary. (Optional)
-    6. evaluate_model/predict_model - Test the model with the testing dataset. evaluate_model will only get the
+    7. evaluate_model/predict_model - Test the model with the testing dataset. evaluate_model will only get the
                                       overall accuracy and loss while predict_model will return a classification
                                       report and predicted labels for the testing dataset.
-    7. visualise_performance - Plot the accuracy and loss in each epoch for training and validation dataset
-    8. save_model - Save the weight for the model for later use.
-    9. clean_up - remove the folders storing the images.
+    8. visualise_performance - Plot the accuracy and loss in each epoch for training and validation dataset
+    9. save_model - Save the weight for the model for later use.
+    10. clean_up - remove the folders storing the images.
 
     The method "process" will run through the whole process, should be the entry point if you want to train and
     test the model.
@@ -87,6 +89,10 @@ class BaseClassifier:
         self.clean_up()
 
     def process_load_model(self):
+        """
+        This is the setup method before loading a model.
+
+        """
         self.model_name = self._get_model_name()
 
         self.log_path: str = f"./logs/{self._get_model_name()}/"
@@ -99,28 +105,28 @@ class BaseClassifier:
         """
         pass
 
-    def create_model(self) -> None:
+    def create_model(self):
         """
         Create the CNN Model.
         This method should be implemented in child class.
         """
         pass
 
-    def show_model_summary(self) -> None:
+    def show_model_summary(self):
         """
         Show model summary
         This method should be implemented in child class.
         """
         pass
 
-    def train_model(self) -> None:
+    def train_model(self):
         """
         Train the Model.
         This method should be implemented in child class.
         """
         pass
 
-    def fine_tune_model(self) -> None:
+    def fine_tune_model(self):
         """
         Fine tune the model if necessary
         This method should be implemented in child class.

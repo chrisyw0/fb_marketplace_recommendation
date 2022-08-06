@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import torch
 import torch.nn as nn
 import copy
@@ -29,30 +30,33 @@ class PTImageTextClassifier(PTBaseClassifier):
         df_image (pd.DataFrame): Image dataframe
         df_product (pd.DataFrame): Product dataframe
 
-        image_seq_layers (tf.keras.Model): The trained image model (without preprocessing and prediction layer).
-        text_seq_layers (tf.keras.Model): The trained text model (without preprocessing and prediction layer).
-
         image_base_model_name (str, optional): Name of the image pre-trained model. Defaults to "EfficientNetB3"
-        embedding (str, Optional): The type of embedding model. Defaults to "Word2Vec".
+        embedding (str, Optional): The type of embedding model. Defaults to "BERT".
 
-        embedding_pretrain_model (str, Optional): Whether to use a pretrain model to encode the text.
-                                                  Defaults to None, which means no pretrained model is used.
-
+        embedding_pretrain_model (str, Optional): Whether to use a pretrain model to encode the text. This is used to
+                                                  get the tokenizer for transformer based model.
+                                                  Defaults to "bert-base-cased", which is the pre-trained model of BERT.
+        embedding_dim (int, Optional): The dimension of the embedding model. Defaults to 768.
+        image_path: (str, optional): Path to store the original image. Defaults to "./data/images/"
         transformed_image_path (str, optional): Path to cache the transformed image. This is improving when training,
                                                 validating and testing the model as we don't need to transform and resize
                                                 images when they are loaded into memory. Defaults to "./data/adjusted_img/"
 
-        input_shape (Tuple[int, int, int], Optional): Size of the image inputting to the model.
+        image_shape (Tuple[int, int, int], Optional): Size of the image inputting to the model.
                                                       If image channel = 'RGB', the value will be
                                                       (width, height, 3) i.e. 3 channels
                                                       Defaults to (300, 300, 3)
 
         epoch (float, optional): Epoch of the model. Defaults to 3.
-        learning_rate (float, optional): Learning rate of the model. Defaults to 1e-6.
+        learning_rate (float, optional): Learning rate of the model. Defaults to 1e-3.
         batch_size (int, optional): Batch size of the model. Defaults to 16.
 
         metrics (List[str], optional):  list of metrics using for model evaluation. Defaults to ["accuracy"].
 
+        image_base_model (nn.Module): The trained image based model.
+        image_seq_layers (nn.Module): The trained image sequential layers (without preprocessing and prediction layer).
+        text_embedding_layer (nn.Module): The trained embedding model.
+        text_seq_layers (nn.Module): The trained text sequential layers (without preprocessing and prediction layer).
 
     """
     df_product: pd.DataFrame
@@ -61,7 +65,6 @@ class PTImageTextClassifier(PTBaseClassifier):
     image_base_model_name: str = "EfficientNetB3"
     embedding: str = "BERT"
     embedding_dim: int = 768
-    max_token_per_per_sentence: int = 512
 
     image_path: str = "./data/images/"
     transformed_image_path: str = "./data/adjusted_img/"
@@ -77,32 +80,34 @@ class PTImageTextClassifier(PTBaseClassifier):
 
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
 
-    def __init__(self,
-                 df_image: pd.DataFrame,
-                 df_product: pd.DataFrame,
-                 image_base_model: Any,
-                 image_seq_layers: Any,
-                 text_seq_layers: Any,
-                 is_transformer_based_text_model,
-                 text_embedding_layer: Optional[Any]
-                 ):
+    def __init__(
+            self,
+            df_image: pd.DataFrame,
+            df_product: pd.DataFrame,
+            image_base_model: Any,
+            image_seq_layers: Any,
+            text_embedding_layer: Optional[Any],
+            text_seq_layers: Any,
+            is_transformer_based_text_model
+    ):
 
         super().__init__(df_image, df_product)
 
         self.image_seq_layers = copy.deepcopy(image_seq_layers)
         self.text_seq_layers = copy.deepcopy(text_seq_layers)
         self.image_base_model = copy.deepcopy(image_base_model)
+        self.text_embedding_layer = copy.deepcopy(text_embedding_layer)
         self.is_transformer_based_text_model = is_transformer_based_text_model
 
-        self.text_embedding_layer = text_embedding_layer
+        print("Init with previous trained image and text layers")
 
     def _get_model_name(self):
         return f"pt_image_text_model_{self.image_base_model_name}_{self.embedding}"
 
     def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
-        Prepare training, validation and testing data for the model. It includes building the word embedding model,
-        splitting the dataset and getting essential elements for later stages.
+        Prepare training, validation and testing data for the model. It includes building the word tokeniser and
+        embedding model, splitting the dataset and getting essential elements for later stages.
 
         Returns:
             Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: Training, validation and testing dataframe
@@ -134,18 +139,21 @@ class PTImageTextClassifier(PTBaseClassifier):
 
             print("Getting index from the embedding model")
 
+            # restore a gensim model for getting token index.
+            embedding_model = PTImageTextUtil.load_embedding_model(self.embedding)
+
             # convert token into token index in embedding model weight matrix
             df_image_data['tokens_index'] = PTImageTextUtil.get_token_index(
                 product_tokens,
                 self.embedding,
-                self.text_embedding_layer
+                embedding_model
             )
 
-            self.input_shape = {
-                "text": (self.num_max_tokens,),
-                "image": (self.image_shape[2], self.image_shape[1], self.image_shape[0])
-            }
-            self.input_dtypes = [{"text": torch.int, "image": torch.float}]
+            self.input_shape = (
+                (self.image_shape[2], self.image_shape[1], self.image_shape[0]),
+                (self.num_max_tokens,)
+            )
+            self.input_dtypes = [torch.float, torch.int]
 
             print("Prepare training, validation and testing data")
 
@@ -156,7 +164,10 @@ class PTImageTextClassifier(PTBaseClassifier):
             X_val = df_val['tokens_index'].to_list()
             X_test = df_test['tokens_index'].to_list()
 
-            X_train, X_val, X_test = PTImageTextUtil.prepare_token_with_padding((X_train, X_val, X_test))
+            X_train, X_val, X_test = PTImageTextUtil.prepare_token_with_padding(
+                (X_train, X_val, X_test),
+                self.embedding
+            )
 
         else:
             df_image_data['product_name_description'] = df_image_data["product_name_description"].apply(
@@ -178,10 +189,14 @@ class PTImageTextClassifier(PTBaseClassifier):
 
             X_train, X_val, X_test = PTImageTextUtil.batch_encode_text((X_train, X_val, X_test), tokenizer)
 
-            # TODO: missing input shape and dtypes for model summary
-            self.skip_summary = True
-            self.input_shape = {key: (self.max_token_per_per_sentence,) for key in X_train.keys()}
-            self.input_dtypes = [{key: torch.long for key in X_train.keys()}]
+            input_img = np.random.rand(1, self.image_shape[2], self.image_shape[1], self.image_shape[0])
+            input_img = torch.from_numpy(input_img)
+            input_img = input_img.float()
+
+            self.input_data = [
+                input_img,
+                {key: torch.unsqueeze(value[0], dim=0) for key, value in X_train.items()}
+            ]
 
         print("Prepare training, validation and testing data")
 
@@ -193,7 +208,7 @@ class PTImageTextClassifier(PTBaseClassifier):
             tokens=X_train,
             image_root_path=self.image_path,
             image_shape=self.image_shape,
-            temp_img_path=self.transformed_image_path,
+            transformed_img_path=self.transformed_image_path,
             labels=y_train
         )
 
@@ -202,7 +217,7 @@ class PTImageTextClassifier(PTBaseClassifier):
             tokens=X_val,
             image_root_path=self.image_path,
             image_shape=self.image_shape,
-            temp_img_path=self.transformed_image_path,
+            transformed_img_path=self.transformed_image_path,
             labels=y_val
         )
 
@@ -211,7 +226,7 @@ class PTImageTextClassifier(PTBaseClassifier):
             tokens=X_test,
             image_root_path=self.image_path,
             image_shape=self.image_shape,
-            temp_img_path=self.transformed_image_path,
+            transformed_img_path=self.transformed_image_path,
             labels=y_test
         )
 
@@ -221,10 +236,10 @@ class PTImageTextClassifier(PTBaseClassifier):
 
         return df_train, df_val, df_test
 
-    def create_model(self) -> None:
+    def create_model(self):
         """
-        It creates the model, compile and build the tensorflow model. This is just the combination of image and
-        text model. We connect these models with text and image processing layers, and a final prediction layer.
+        It creates the model, compile and build the PyTorch model. This is just the combination of the trained image
+        and text model. We connect these models with text and image processing layers, and a final prediction layer.
 
         The model is compiled with AdamW optimiser together with learning rate scheduler. It takes advantages of
         decreasing learning rate as well as the adaptive learning rate for each parameter in each optimisation steps.
@@ -233,14 +248,15 @@ class PTImageTextClassifier(PTBaseClassifier):
 
         A compiled model will be saved in the model attributes as a result.
 
-        This function will print out the summary of the model. You may also find the model graph and summary in README
-        of this project.
+        You may also find the model graph and summary in README of this project.
 
         """
 
         # we don't train the sequential layers here as it has been trained and fine-tuned in previous steps
-        PTImageTextUtil.set_base_model_trainable(self.text_seq_layers, -1)
-        PTImageTextUtil.set_base_model_trainable(self.image_seq_layers, -1)
+        PTImageTextUtil.set_base_model_trainable(self.text_seq_layers, 0)
+        PTImageTextUtil.set_base_model_trainable(self.image_seq_layers, 0)
+        PTImageTextUtil.set_base_model_trainable(self.image_base_model, 0)
+        PTImageTextUtil.set_base_model_trainable(self.text_embedding_layer, 0)
 
         class PTImageTextModel(nn.Module):
             def __init__(
@@ -282,10 +298,11 @@ class PTImageTextClassifier(PTBaseClassifier):
                     x_text = self.text_embedding_layer(**text)["pooler_output"]
                 else:
                     x_text = self.text_embedding_layer(text)
+                    x_text = torch.transpose(x_text, 1, 2)
 
                 x_text = self.text_seq_layers(x_text)
 
-                x = torch.cat([x_img, x_text], dim=1)
+                x = torch.cat((x_img, x_text), dim=1)
                 x = self.prediction_layer(x)
 
                 return x
@@ -304,11 +321,10 @@ class PTImageTextClassifier(PTBaseClassifier):
 
     def train_model(self) -> None:
         """
-        Train the model with the training data. It applies early stop by monitoring loss of validation dataset.
-        In each epoch, it will print out the loss and accuracy of the training and validation dataset
-        in 'history' attribute. The records will be used for illustrating the performance of the model
-        in later stage. There is a callback called tensorboard callback, which creates logs during the training process,
-        and these logs can then be uploaded to TensorBoard.dev
+        Train the model with the training data. In each epoch, it will print out the loss and accuracy of the training
+        and validation dataset in 'history' attribute. The records will be used for illustrating the performance of
+        the model in later stage. There is a callback called tensorboard callback, which creates logs during the
+        training process, and these logs can then be uploaded to TensorBoard.dev
         """
 
         optimizer, scheduler = prepare_optimizer_and_scheduler(

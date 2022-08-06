@@ -33,7 +33,7 @@ class PTTextTransformerClassifier(PTBaseClassifier):
         embedding_dim (int, Optional): The vector size of embedding model. Defaults to 768.
         embedding_pretrain_model (str, Optional): Whether to use a pretrain model to encode the text. Please check
                                                   tf_text_processing_constant.py for available options.
-                                                  Defaults to "bert_en_cased_L-12_H-768_A-12".
+                                                  Defaults to "bert-base-cased".
         batch_size (int, optional): Batch size of the model. Defaults to 16.
         dropout_pred (float, optional): Dropout rate of the layer before the prediction layer of the model.
                                               Defaults to 0.5.
@@ -51,7 +51,6 @@ class PTTextTransformerClassifier(PTBaseClassifier):
 
     embedding_dim: int = 768
     embedding_pretrain_model: str = "bert-base-cased"
-    max_token_per_per_sentence: int = 512
 
     batch_size: int = 16
     dropout_pred: float = 0.5
@@ -99,10 +98,9 @@ class PTTextTransformerClassifier(PTBaseClassifier):
 
         X_train, X_val, X_test = PTImageTextUtil.batch_encode_text((X_train, X_val, X_test), tokenizer)
 
-        # TODO: missing input shape and dtypes for model summary
-        self.skip_summary = True
-        # self.input_shape = {key: (self.max_token_per_per_sentence,) for key in encoded_text.keys()}
-        # self.input_dtypes = [{key: torch.long for key in encoded_text.keys()}]
+        self.input_data = [
+            {key: torch.unsqueeze(value[0], dim=0) for key, value in X_train.items()}
+        ]
 
         y_train, y_val, y_test = generator.get_product_categories(df_train, df_val, df_test)
 
@@ -133,8 +131,6 @@ class PTTextTransformerClassifier(PTBaseClassifier):
     def create_model(self) -> None:
         """
         Create the model with pretrained transformer based model for text classification. It includes following layers:
-        - Preprocessing layer: This is the layer tokenising the text, returning the input ids and attention mask.
-          The output is also padded with the same length to allow the tokens id inputting to the embedding layer
         - Embedding layer: This is the pre-trained embedding layer.
         - Dropout: Dropout a proportion of layers outputs from previous hidden layer
         - Dense: Linear layer with activation layer applied
@@ -150,8 +146,7 @@ class PTTextTransformerClassifier(PTBaseClassifier):
         decreasing learning rate as well as the adaptive learning rate for each parameter in each optimisation steps.
         It uses categorical cross entropy as loss function and accuracy as the evaluation metric.
 
-        This function will print out the summary of the model. You may also find the model graph and summary in README
-        of this project.
+        You may also find the model graph and summary in README of this project.
         """
 
         PTImageTextUtil.set_base_model_trainable(
@@ -205,8 +200,6 @@ class PTTextTransformerClassifier(PTBaseClassifier):
 
         Since we don't have much other layers than the embedding layers, we can treat this step as the fine-tuning
         steps of the transformer based model.
-
-        Returns:
 
         """
 

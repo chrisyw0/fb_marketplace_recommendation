@@ -10,16 +10,19 @@ import transformers
 from tqdm import tqdm
 from classes.cnn_approach.base.base_classifier import BaseClassifier
 from sklearn.metrics import classification_report
-from torchsummary import summary
-from typing import Tuple, Dict, Union, List
+from torchinfo import summary
+from typing import Tuple, Dict, Union, List, Any
 from torch.utils.data import DataLoader
 
+# this is to cater the availability of gpu device. "mps" is metal M1 device, "cuda" is Nvidia GPU and fallback
+# option is to use cpu
 pt_device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class PTBaseClassifier(BaseClassifier):
     device = pt_device
     skip_summary = False
+    input_data: Any = None
     input_shape: Union[Tuple, Dict]
     input_dtypes: List
     classes: List[str]
@@ -29,24 +32,31 @@ class PTBaseClassifier(BaseClassifier):
     test_dl: DataLoader
 
     """
-    This is the tensorflow version of the BaseClassifier with several common methods implemented
+    This is the PyTorch version of the BaseClassifier with several common methods implemented
     """
 
-    def show_model_summary(self) -> None:
+    def show_model_summary(self):
         """
         Show model summary
         """
 
         if not self.skip_summary:
-            summary(
-                self.model,
-                self.input_shape,
-                dtypes=self.input_dtypes,
-                batch_dim=0,
-                device=pt_device
-            )
+            if self.input_data:
+                print(summary(
+                    self.model,
+                    input_data=self.input_data,
+                    device=pt_device
+                ))
+            else:
+                print(summary(
+                    self.model,
+                    self.input_shape,
+                    dtypes=self.input_dtypes,
+                    batch_dim=0,
+                    device=pt_device
+                ))
 
-    def visualise_performance(self) -> None:
+    def visualise_performance(self):
         """
         Visual the performance of the model. It will plot loss and accuracy for training and validation dataset
         in each epoch.
@@ -73,6 +83,8 @@ class PTBaseClassifier(BaseClassifier):
         Create a model with saved weight
         """
 
+        self.process_load_model()
+        self.prepare_data()
         self.create_model()
         self.model.load_state_dict(torch.load(f"{self.model_path}model.pt"))
 

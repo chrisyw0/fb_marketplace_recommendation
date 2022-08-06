@@ -17,4 +17,4 @@ transformers
 tensorboard
 gensim
 emoji
-torch-summary
+torchinfo

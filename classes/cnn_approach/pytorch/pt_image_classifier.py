@@ -33,7 +33,7 @@ class PTImageClassifier(PTBaseClassifier):
         transformed_image_path (str, optional): Path to save the preprocessed images.
                                                 Defaults to "./data/adjusted_img/" + image_shape[0].
 
-        batch_size (int, optional): Batch size of the model Defaults to 32.
+        batch_size (int, optional): Batch size of the model Defaults to 12.
         image_shape (Tuple[int, int, int], Optional): Size of the image inputting to the model.
                                                       If image channel = 'RGB', the value will be
                                                       (width, height, 3) i.e. 3 channels
@@ -42,7 +42,7 @@ class PTImageClassifier(PTBaseClassifier):
         dropout_pred (float, optional): Dropout rate of the layer before the prediction layer of the model.
                                         Defaults to 0.3.
 
-        learning_rate (float, optional): Learning rate of the model in the training stage. Defaults to 0.0001.
+        learning_rate (float, optional): Learning rate of the model in the training stage. Defaults to 1e-3.
         epoch (float, optional): Epoch of the model Defaults to 12.
 
         fine_tune_base_model (bool, optional): Whether fine tuning model is required. Defaults to True.
@@ -115,7 +115,7 @@ class PTImageClassifier(PTBaseClassifier):
             tokens=None,
             image_root_path=self.image_path,
             image_shape=self.image_shape,
-            temp_img_path=self.transformed_image_path,
+            transformed_img_path=self.transformed_image_path,
             labels=y_train
         )
 
@@ -124,7 +124,7 @@ class PTImageClassifier(PTBaseClassifier):
             tokens=None,
             image_root_path=self.image_path,
             image_shape=self.image_shape,
-            temp_img_path=self.transformed_image_path,
+            transformed_img_path=self.transformed_image_path,
             labels=y_val
         )
 
@@ -133,7 +133,7 @@ class PTImageClassifier(PTBaseClassifier):
             tokens=None,
             image_root_path=self.image_path,
             image_shape=self.image_shape,
-            temp_img_path=self.transformed_image_path,
+            transformed_img_path=self.transformed_image_path,
             labels=y_test
         )
 
@@ -158,8 +158,7 @@ class PTImageClassifier(PTBaseClassifier):
 
         A compiled model will be saved in the model attributes as a result.
 
-        This function will print out the summary of the model. You may also find the model graph and summary in README
-        of this project.
+        You may also find the model graph and summary in README of this project.
         """
 
         class PTImageModel(nn.Module):

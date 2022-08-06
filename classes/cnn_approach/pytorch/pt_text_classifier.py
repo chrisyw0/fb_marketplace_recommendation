@@ -44,7 +44,7 @@ class PTTextClassifier(PTBaseClassifier):
 
         fine_tune_base_model (bool, optional): Whether fine-tuning model is required. Default to True.
         fine_tune_learning_rate (float, optional): Learning rate of the model in the fine-tuning stage.
-                                                   Defaults to 1e-5.
+                                                   Defaults to 5e-3.
         fine_tune_epoch: (int, optional): Number of epochs in fine-tuning stage. Defaults to 15.
 
         metrics (List[str], optional):  list of metrics using for model evaluation. Defaults to ["accuracy"].
@@ -176,7 +176,7 @@ class PTTextClassifier(PTBaseClassifier):
         - AveragePooling1D: Averaging pooling layer
         - Flatten: Flatten the 2D array input to 1D array
         - Dropout: Dropout a proportion of layers outputs from previous hidden layer
-        - Dense: Linear layer with activation layer applied
+        - Linear: Linear layer with activation layer applied
 
         The input will be the token index for each product's tokens. To make the input shape the same for all products,
         padding is applied in previous function which simply append 0s to every product which has smaller tokens than
@@ -189,8 +189,7 @@ class PTTextClassifier(PTBaseClassifier):
         decreasing learning rate as well as the adaptive learning rate for each parameter in each optimisation steps.
         It uses categorical cross entropy as loss function and accuracy as the evaluation metric.
 
-        This function will print out the summary of the model. You may also find the model graph and summary in README
-        of this project.
+        You may also find the model graph and summary in README of this project.
 
         """
 
@@ -245,8 +244,7 @@ class PTTextClassifier(PTBaseClassifier):
 
     def train_model(self) -> None:
         """
-        Train the model with the training data. It applies early stop by monitoring loss of validation dataset.
-        If the model fails to improve for 5 epochs, it will stop training to avoid overfitting.
+        Train the model with the training data.
         In each epoch, it will print out the loss and accuracy of the training and validation dataset
         in 'history' attribute. The records will be used for illustrating the performance of the model
         in later stage. There is a callback called tensorboard callback which create logs during the training process,
@@ -365,10 +363,12 @@ class PTTextClassifier(PTBaseClassifier):
 
         super().save_model()
         torch.save(self.model.sequential_layer.state_dict(), f"{self.model_path}text_seq_layers.pt")
+        torch.save(self.model.embedding_layer.state_dict(), f"{self.model_path}embedding_layer.pt")
 
     def load_model(self):
         """
         Load weight of the trained model.
         """
         super().load_model()
-        self.model.image_seq_layers.load_state_dict(torch.load(f"{self.model_path}text_seq_layers.pt"))
+        self.model.sequential_layer.load_state_dict(torch.load(f"{self.model_path}text_seq_layers.pt"))
+        self.model.embedding_layer.load_state_dict(torch.load(f"{self.model_path}embedding_layer.pt"))

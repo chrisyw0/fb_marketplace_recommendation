@@ -1,9 +1,8 @@
-import pandas as pd
 import torch
 import torch.nn as nn
 
 from transformers import BertTokenizer, BertModel
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Dict
 from classes.cnn_approach.base.image_text_util import ImageTextUtil
 from torchvision.models import (
     resnet50,
@@ -14,6 +13,7 @@ from torchvision.models import (
     EfficientNet_V2_M_Weights
 )
 from torch.nn.utils.rnn import pad_sequence
+
 
 class PTImageTextUtil(ImageTextUtil):
     """
@@ -62,18 +62,15 @@ class PTImageTextUtil(ImageTextUtil):
 
     @staticmethod
     def gensim_to_pytorch_embedding(model: Any):
-
         """Get a Keras 'Embedding' layer with weights set from Word2Vec model's learned word embeddings.
 
-        Parameters
-        ----------
-        model: Any
-            Gensim word embedding model. This can be Word2vec, FastText or Glove
+        Args:
+            model: Any
+                Gensim word embedding model. This can be Word2vec, FastText or Glove
 
-        Returns
-        -------
-        `torch.nn.Embedding`
-            Embedding layer, to be used as input to deeper network layers.
+        Returns:
+            `torch.nn.Embedding`
+                Embedding layer, to be used as input to deeper network layers.
 
         """
 
@@ -125,8 +122,8 @@ class PTImageTextUtil(ImageTextUtil):
         """
         Unfreeze the model layers
         Args:
-            model: Any pytorch model.
-            num_trainable_layer: Number of layers to be unfreezed. For example, if num_trainable_layer = 50,
+            model: Any pytorch model/sequential layers.
+            num_trainable_layer: Number of layers to be freeze/unfreeze. For example, if num_trainable_layer = 50,
                                  the last 50 layers will be set to trainable. To unfreeze all layers, pass in
                                  -1.
 
@@ -147,7 +144,22 @@ class PTImageTextUtil(ImageTextUtil):
                     param.requires_grad = False
 
     @staticmethod
-    def prepare_token_with_padding(X: Tuple[List[int], List[int], List[int]], embedding):
+    def prepare_token_with_padding(
+            X: Tuple[List[int], List[int], List[int]], embedding: str
+    ) -> Tuple[List[int], List[int], List[int]]:
+        """
+        Add padding to the tokens. This is developed for non-transformer based data only. To add padding for transformer based
+        model, use batch_encode_text instead.
+
+        Args:
+            X: A tuple containing training, validation and testing (in List[int] format), to be padded with trailing
+               zero
+            embedding: The embedding method. Currently, support Word2Vec only
+
+        Returns:
+            A tuple of training, validation and testing dataset
+
+        """
         X_train, X_val, X_test = X
 
         if embedding == "Word2Vec":
@@ -168,7 +180,23 @@ class PTImageTextUtil(ImageTextUtil):
             return X_train, X_val, X_test
 
     @staticmethod
-    def batch_encode_text(X: Tuple[List[str], List[str], List[str]], tokenizer):
+    def batch_encode_text(
+            X: Tuple[List[str], List[str], List[str]], tokenizer: Any
+    ) -> Tuple[Dict, Dict, Dict]:
+        """
+        Encode the text into token ids with padding. This is developed for transformer based data only. To add padding
+        for non-transformer based model, use prepare_token_with_padding instead.
+        Args:
+            X: A tuple containing training, validation and testing (in List[int] format), to be padded with trailing
+               zero
+            tokenizer: Tokeniser that matches the embedding model
+
+        Returns:
+            Tuple[Dict, Dict, Dict]:
+                A tuple of dictionary containing the encoded and padded data of training, validation and testing data.
+
+        """
+
         X_train, X_val, X_test = X
 
         train_end_idx = len(X_train)
@@ -177,7 +205,6 @@ class PTImageTextUtil(ImageTextUtil):
         text = X_train
         text.extend(X_val)
         text.extend(X_test)
-
 
         encoded_text = tokenizer.batch_encode_plus(
             text,
