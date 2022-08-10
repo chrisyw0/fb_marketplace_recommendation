@@ -19,6 +19,52 @@ from classes.cnn_approach.pytorch.utils.pt_dataset_generator import PTImageTextD
 from classes.data_preparation.prepare_dataset import DatasetHelper
 
 
+class PTTextModel(nn.Module):
+    """
+    This is the text model in nn.Module format containing text layers (embedding and text sequential layers)
+    and finally a prediction layer. The embedding layer should be non-transformer based model
+    i.e. Word2Vec, Fasttext or Glove
+
+    The model override the forward method of the nn.Module which gives instructions how to process the input data
+    and give prediction from it.
+
+    It accepts input format in torch.Tensor [batch_size, max_token_number].
+    """
+    def __init__(
+            self,
+            num_class,
+            embedding_dim,
+            embedding_layer,
+            dropout_conv,
+            dropout_pred
+    ):
+        super(PTTextModel, self).__init__()
+        self.embedding_layer = embedding_layer
+
+        self.sequential_layer = nn.Sequential(
+            nn.Conv1d(embedding_dim, 48, 3),
+            nn.ReLU(),
+            nn.AvgPool1d(2),
+            nn.Conv1d(48, 24, 3),
+            nn.ReLU(),
+            nn.AvgPool1d(2),
+            nn.Flatten(),
+            nn.Dropout(dropout_conv),
+            nn.Linear(8712, 256),
+            nn.ReLU(),
+            nn.Dropout(dropout_pred)
+        )
+
+        self.prediction_layer = nn.Linear(256, num_class)
+
+    def forward(self, text):
+        x = self.embedding_layer(text)
+        x = torch.transpose(x, 1, 2)
+        x = self.sequential_layer(x)
+        x = self.prediction_layer(x)
+        return x
+
+
 class PTTextClassifier(PTBaseClassifier):
     """
     A deep learning model predicting product category from its name and description.
@@ -195,41 +241,6 @@ class PTTextClassifier(PTBaseClassifier):
 
         self.embedding_layer = PTImageTextUtil.gensim_to_pytorch_embedding(
             self.embedding_model)
-
-        class PTTextModel(nn.Module):
-            def __init__(
-                    self,
-                    num_class,
-                    embedding_dim,
-                    embedding_layer,
-                    dropout_conv,
-                    dropout_pred
-            ):
-                super(PTTextModel, self).__init__()
-                self.embedding_layer = embedding_layer
-
-                self.sequential_layer = nn.Sequential(
-                    nn.Conv1d(embedding_dim, 48, 3),
-                    nn.ReLU(),
-                    nn.AvgPool1d(2),
-                    nn.Conv1d(48, 24, 3),
-                    nn.ReLU(),
-                    nn.AvgPool1d(2),
-                    nn.Flatten(),
-                    nn.Dropout(dropout_conv),
-                    nn.Linear(8712, 256),
-                    nn.ReLU(),
-                    nn.Dropout(dropout_pred)
-                )
-
-                self.prediction_layer = nn.Linear(256, num_class)
-
-            def forward(self, text):
-                x = self.embedding_layer(text)
-                x = torch.transpose(x, 1, 2)
-                x = self.sequential_layer(x)
-                x = self.prediction_layer(x)
-                return x
 
         self.model = PTTextModel(
             self.num_class,

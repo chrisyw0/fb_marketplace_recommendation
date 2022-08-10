@@ -2,7 +2,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 
-from typing import Tuple, List, Any
+from typing import Tuple, List, Any, Dict
 from dataclasses import field
 from torch.utils.tensorboard import SummaryWriter
 
@@ -18,6 +18,44 @@ from classes.cnn_approach.pytorch.utils.pt_dataset_generator import PTImageTextD
 from classes.data_preparation.prepare_dataset import DatasetHelper
 
 from transformers import AutoModel
+
+
+class PTTextTransformerModel(nn.Module):
+    """
+    This is the text model in nn.Module format containing text layers (embedding and text sequential layers)
+    and finally a prediction layer. The embedding layer should be transformer based model,
+    i.e. BERT, Roberta or Longformer
+
+    The model override the forward method of the nn.Module which gives instructions how to process the input data
+    and give prediction from it.
+
+    It accepts the format in dictionary format, containing token id, attention mask
+    and some other values required from model input, which can be encoded by PTImageTextUtil.batch_encode_text.
+    """
+    def __init__(
+            self,
+            num_class: int,
+            embedding_dim: int,
+            embedding_layer: nn.Module,
+            dropout_pred: float
+    ):
+        super(PTTextTransformerModel, self).__init__()
+
+        self.embedding_layer = embedding_layer
+
+        self.sequential_layer = nn.Sequential(
+            nn.Linear(embedding_dim, 256),
+            nn.ReLU(),
+            nn.Dropout(dropout_pred)
+        )
+
+        self.prediction_layer = nn.Linear(256, num_class)
+
+    def forward(self, text: Dict[str, torch.Tensor]):
+        x = self.embedding_layer(**text)["pooler_output"]
+        x = self.sequential_layer(x)
+        x = self.prediction_layer(x)
+        return x
 
 
 class PTTextTransformerClassifier(PTBaseClassifier):
@@ -152,32 +190,6 @@ class PTTextTransformerClassifier(PTBaseClassifier):
         PTImageTextUtil.set_base_model_trainable(
             self.embedding_layer, -1
         )
-
-        class PTTextTransformerModel(nn.Module):
-            def __init__(
-                    self,
-                    num_class,
-                    embedding_dim,
-                    embedding_layer,
-                    dropout_pred
-            ):
-                super(PTTextTransformerModel, self).__init__()
-
-                self.embedding_layer = embedding_layer
-
-                self.sequential_layer = nn.Sequential(
-                    nn.Linear(embedding_dim, 256),
-                    nn.ReLU(),
-                    nn.Dropout(dropout_pred)
-                )
-
-                self.prediction_layer = nn.Linear(256, num_class)
-
-            def forward(self, text):
-                x = self.embedding_layer(**text)["pooler_output"]
-                x = self.sequential_layer(x)
-                x = self.prediction_layer(x)
-                return x
 
         self.model = PTTextTransformerModel(
             self.num_class,

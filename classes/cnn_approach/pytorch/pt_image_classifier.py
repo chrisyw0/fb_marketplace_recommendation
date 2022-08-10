@@ -19,6 +19,60 @@ from classes.cnn_approach.pytorch.utils.pt_image_text_util import PTImageTextUti
 from classes.cnn_approach.pytorch.utils.pt_dataset_generator import PTImageTextDataset
 
 
+class PTImageModel(nn.Module):
+    """
+    This is the image model in nn.Module format containing image layers (transformation  + based model +
+    image sequential layers) and finally a prediction layer.
+
+    The model override the forward method of the nn.Module which gives instructions how to process the input data
+    and give prediction from it.
+
+    It accepts image input format in torch.Tensor, which should be a 4d tensor
+    [batch_size, channel, height, width]
+    """
+    def __init__(
+            self,
+            num_class: int,
+            image_base_model: nn.Module,
+            image_shape: Tuple[int, int, int],
+            dropout_conv: float,
+            dropout_pred: float,
+            base_model_output_dim: int
+    ):
+        super(PTImageModel, self).__init__()
+        self.transforms = nn.Sequential(
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(72),
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        )
+
+        self.image_base_model = PTImageTextUtil.prepare_image_base_model(
+            image_base_model,
+            image_shape
+        )
+
+        self.sequential_layer = nn.Sequential(
+            nn.Dropout(dropout_conv),
+            nn.Linear(base_model_output_dim, 1024),
+            nn.ReLU(),
+            nn.Linear(1024, 256),
+            nn.ReLU(),
+            nn.Dropout(dropout_pred)
+        )
+
+        self.prediction_layer = nn.Linear(256, num_class)
+
+    def forward(self, image: torch.Tensor):
+        x = self.transforms(image)
+        x = self.image_base_model(x)
+        x = x.squeeze()
+        if x.dim() == 1:
+            # if only one data in a batch, it adds back the dimension
+            x = x.unsqueeze(0)
+        x = self.sequential_layer(x)
+        x = self.prediction_layer(x)
+        return x
+
 class PTImageClassifier(PTBaseClassifier):
     """
     A deep learning model predicting product category of an image.
@@ -160,50 +214,6 @@ class PTImageClassifier(PTBaseClassifier):
 
         You may also find the model graph and summary in README of this project.
         """
-
-        class PTImageModel(nn.Module):
-            def __init__(
-                    self,
-                    num_class,
-                    image_base_model,
-                    image_shape,
-                    dropout_conv,
-                    dropout_pred,
-                    base_model_output_dim
-            ):
-                super(PTImageModel, self).__init__()
-                self.transforms = nn.Sequential(
-                    transforms.RandomHorizontalFlip(),
-                    transforms.RandomRotation(72),
-                    transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-                )
-
-                self.image_base_model = PTImageTextUtil.prepare_image_base_model(
-                    image_base_model,
-                    image_shape
-                )
-
-                self.sequential_layer = nn.Sequential(
-                    nn.Dropout(dropout_conv),
-                    nn.Linear(base_model_output_dim, 1024),
-                    nn.ReLU(),
-                    nn.Linear(1024, 256),
-                    nn.ReLU(),
-                    nn.Dropout(dropout_pred)
-                )
-
-                self.prediction_layer = nn.Linear(256, num_class)
-
-            def forward(self, image):
-                x = self.transforms(image)
-                x = self.image_base_model(x)
-                x = x.squeeze()
-                if x.dim() == 1:
-                    # if only one data in a batch, it adds back the dimension
-                    x = x.unsqueeze(0)
-                x = self.sequential_layer(x)
-                x = self.prediction_layer(x)
-                return x
 
         base_model_dim = {
             "EfficientNetB0": 1280,
