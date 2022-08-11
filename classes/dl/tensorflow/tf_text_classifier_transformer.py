@@ -6,10 +6,9 @@ import math
 from typing import Tuple, List, Any
 from dataclasses import field
 from sklearn.metrics import classification_report
-from official.nlp import optimization  # to create AdamW optimizer
 
 from classes.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
-from classes.dl.tensorflow.tf_base_classifier import TFBaseClassifier
+from classes.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
 from classes.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
 from classes.data_preparation.prepare_dataset import DatasetHelper
 
@@ -114,7 +113,7 @@ class TFTextTransformerClassifier(TFBaseClassifier):
             tf.TensorSpec(shape=(None, self.num_class), dtype=tf.float32)
         )
 
-        ds_train = tf.data.Dataset.from_generator(gen, output_signature=out_sign)
+        self.ds_train = gen.get_dataset(out_sign)
 
         gen = TFDatasetGenerator(
             images=None,
@@ -127,7 +126,7 @@ class TFTextTransformerClassifier(TFBaseClassifier):
             labels=y_val
         )
 
-        ds_val = tf.data.Dataset.from_generator(gen, output_signature=out_sign)
+        self.ds_val = gen.get_dataset(out_sign)
 
         gen = TFDatasetGenerator(
             images=None,
@@ -140,14 +139,7 @@ class TFTextTransformerClassifier(TFBaseClassifier):
             shuffle=False
         )
 
-        ds_test = tf.data.Dataset.from_generator(gen, output_signature=out_sign)
-
-        self.ds_train = ds_train.apply(
-            tf.data.experimental.assert_cardinality(math.ceil(len(y_train) / self.batch_size)))
-        self.ds_val = ds_val.apply(
-            tf.data.experimental.assert_cardinality(math.ceil(len(y_val) / self.batch_size)))
-        self.ds_test = ds_test.apply(
-            tf.data.experimental.assert_cardinality(math.ceil(len(self.y_test) / self.batch_size)))
+        self.ds_test = gen.get_dataset(out_sign)
 
         return df_train, df_val, df_test
 
@@ -175,14 +167,11 @@ class TFTextTransformerClassifier(TFBaseClassifier):
         of this project.
         """
 
-        steps_per_epoch = tf.data.experimental.cardinality(self.ds_train).numpy()
-        num_train_steps = steps_per_epoch * self.epoch
-        num_warmup_steps = int(0.1 * num_train_steps)
-
-        optimizer = optimization.create_optimizer(init_lr=self.learning_rate,
-                                                  num_train_steps=num_train_steps,
-                                                  num_warmup_steps=num_warmup_steps,
-                                                  optimizer_type='adamw')
+        optimizer = get_optimizer(
+            self.ds_train,
+            self.epoch,
+            self.learning_rate
+        )
 
         self.embedding_model, embedding_preprocess = TFImageTextUtil.prepare_embedding_model(
             embedding=self.embedding,

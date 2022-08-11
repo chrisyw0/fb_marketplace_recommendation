@@ -6,10 +6,9 @@ import math
 from typing import Tuple, List, Any
 from dataclasses import field
 from sklearn.metrics import classification_report
-from official.nlp import optimization
 
 from classes.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
-from classes.dl.tensorflow.tf_base_classifier import TFBaseClassifier
+from classes.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
 from classes.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
 from classes.data_preparation.prepare_dataset import DatasetHelper
 
@@ -159,7 +158,7 @@ class TFTextClassifier(TFBaseClassifier):
             tf.TensorSpec(shape=(None, self.num_class), dtype=tf.float32)
         )
 
-        ds_train = tf.data.Dataset.from_generator(gen, output_signature=out_sign)
+        self.ds_train = gen.get_dataset(out_sign)
 
         gen = TFDatasetGenerator(images=None,
                                  tokens=X_val,
@@ -171,7 +170,7 @@ class TFTextClassifier(TFBaseClassifier):
                                  labels=y_val,
                                  pad_text_seq=True)
 
-        ds_val = tf.data.Dataset.from_generator(gen, output_signature=out_sign)
+        self.ds_val = gen.get_dataset(out_sign)
 
         gen = TFDatasetGenerator(images=None,
                                  tokens=X_test,
@@ -183,14 +182,7 @@ class TFTextClassifier(TFBaseClassifier):
                                  shuffle=False,
                                  pad_text_seq=True)
 
-        ds_test = tf.data.Dataset.from_generator(gen, output_signature=out_sign)
-
-        self.ds_train = ds_train.apply(
-            tf.data.experimental.assert_cardinality(math.ceil(len(y_train) / self.batch_size)))
-        self.ds_val = ds_val.apply(
-            tf.data.experimental.assert_cardinality(math.ceil(len(y_val) / self.batch_size)))
-        self.ds_test = ds_test.apply(
-            tf.data.experimental.assert_cardinality(math.ceil(len(self.y_test) / self.batch_size)))
+        self.ds_test = gen.get_dataset(out_sign)
 
         return df_train, df_val, df_test
 
@@ -259,14 +251,11 @@ class TFTextClassifier(TFBaseClassifier):
 
         self.model = tf.keras.Model(inputs, outputs, name=self.model_name)
 
-        steps_per_epoch = tf.data.experimental.cardinality(self.ds_train).numpy()
-        num_train_steps = steps_per_epoch * self.epoch
-        num_warmup_steps = int(0.1 * num_train_steps)
-
-        optimizer = optimization.create_optimizer(init_lr=self.learning_rate,
-                                                  num_train_steps=num_train_steps,
-                                                  num_warmup_steps=num_warmup_steps,
-                                                  optimizer_type='adamw')
+        optimizer = get_optimizer(
+            self.ds_train,
+            self.epoch,
+            self.learning_rate
+        )
 
         self.model.compile(optimizer=optimizer,
                            loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
@@ -325,14 +314,11 @@ class TFTextClassifier(TFBaseClassifier):
 
             TFImageTextUtil.set_base_model_trainable(self.embedding_layer, 1)
 
-            steps_per_epoch = tf.data.experimental.cardinality(self.ds_train).numpy()
-            num_train_steps = steps_per_epoch * self.fine_tune_epoch
-            num_warmup_steps = int(0.1 * num_train_steps)
-
-            optimizer = optimization.create_optimizer(init_lr=self.fine_tune_learning_rate,
-                                                      num_train_steps=num_train_steps,
-                                                      num_warmup_steps=num_warmup_steps,
-                                                      optimizer_type='adamw')
+            optimizer = get_optimizer(
+                self.ds_train,
+                self.fine_tune_epoch,
+                self.fine_tune_learning_rate
+            )
 
             self.model.compile(optimizer=optimizer,
                                loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),

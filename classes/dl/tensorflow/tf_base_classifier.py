@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 from keras.utils.vis_utils import plot_model
 from classes.dl.base.base_classifier import BaseClassifier
+from official.nlp import optimization
 
 
 class TFBaseClassifier(BaseClassifier):
@@ -70,3 +71,37 @@ class TFBaseClassifier(BaseClassifier):
         """
 
         tf.keras.backend.clear_session()
+
+
+def get_optimizer(
+        ds_train: tf.data.Dataset,
+        epoch: int,
+        learning_rate: float,
+        optimizer_type: str = "adamw",
+        warmup_ratio: float = 0.1
+) -> tf.keras.optimizers.Optimizer:
+    """
+    Get an optimizer built with a polynomial decay scheduler.
+    Args:
+        ds_train: Training dataset, use to calculate number of steps in each epoch.
+        epoch: Number of epochs to be used in training
+        learning_rate: Learning rate of each optimization step
+        optimizer_type: The optimizer type, defaults to adamw. See official.nlp.optimization.create_optimizer for
+                        possible value
+        warmup_ratio: The percentage of data to be used in warmup stage, defaults to 0.1.
+
+    Returns:
+        tf.keras.optimizers.Optimizer: An optimizer with learning rate decay scheduler.
+
+    """
+
+    steps_per_epoch = tf.data.experimental.cardinality(ds_train).numpy()
+    num_train_steps = steps_per_epoch * epoch
+    num_warmup_steps = int(warmup_ratio * num_train_steps)
+
+    optimizer = optimization.create_optimizer(init_lr=learning_rate,
+                                              num_train_steps=num_train_steps,
+                                              num_warmup_steps=num_warmup_steps,
+                                              optimizer_type=optimizer_type)
+
+    return optimizer

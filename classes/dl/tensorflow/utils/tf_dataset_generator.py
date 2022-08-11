@@ -187,3 +187,23 @@ class TFDatasetGenerator:
 
         if self.labels is not None:
             self.labels = self.labels[reidx]
+
+    def get_dataset(self, out_sign: tf.TensorSpec) -> tf.data.Dataset:
+        """
+        Generate a dataset with cardinality set from the batch size. Cardinality means the number of
+        steps in each epoch in the training process. This
+        Args:
+            out_sign: Output signature of the dataset. From tf documentation: It is a (nested) structure
+                      of `tf.TypeSpec` objects corresponding to each component of an element yielded by
+                     `generator`
+
+        Returns:
+            tf.data.Dataset: The dataset with cardinality being set
+
+        """
+
+        ds = tf.data.Dataset.from_generator(self, output_signature=out_sign)
+        ds = ds.apply(
+            tf.data.experimental.assert_cardinality(math.ceil(len(self) / self.batch_size)))
+
+        return ds
