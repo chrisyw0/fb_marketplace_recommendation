@@ -15,8 +15,8 @@ from .pt_base_classifier import (
     predict_model,
     prepare_optimizer_and_scheduler
 )
-from classes.cnn_approach.pytorch.utils.pt_image_text_util import PTImageTextUtil
-from classes.cnn_approach.pytorch.utils.pt_dataset_generator import PTImageTextDataset
+from classes.dl.pytorch.utils.pt_image_text_util import PTImageTextUtil
+from classes.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
 
 
 class PTImageModel(nn.Module):

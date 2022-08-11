@@ -7,15 +7,15 @@ from dataclasses import field
 
 from torch.utils.tensorboard import SummaryWriter
 
-from classes.cnn_approach.pytorch.utils.pt_image_text_util import PTImageTextUtil
-from classes.cnn_approach.pytorch.pt_base_classifier import (
+from classes.dl.pytorch.utils.pt_image_text_util import PTImageTextUtil
+from classes.dl.pytorch.pt_base_classifier import (
     PTBaseClassifier,
     train_and_validate_model,
     evaluate_model,
     predict_model,
     prepare_optimizer_and_scheduler
 )
-from classes.cnn_approach.pytorch.utils.pt_dataset_generator import PTImageTextDataset
+from classes.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
 from classes.data_preparation.prepare_dataset import DatasetHelper
 
 

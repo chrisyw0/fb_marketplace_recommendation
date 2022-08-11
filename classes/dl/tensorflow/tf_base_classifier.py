@@ -3,7 +3,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 from keras.utils.vis_utils import plot_model
-from classes.cnn_approach.base.base_classifier import BaseClassifier
+from classes.dl.base.base_classifier import BaseClassifier
 
 
 class TFBaseClassifier(BaseClassifier):

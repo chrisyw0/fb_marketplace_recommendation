@@ -2,11 +2,11 @@ from classes.data_preparation.download_data import DataDownloader
 from classes.data_preparation.visualize_data import DataVisializer
 from classes.data_preparation.clean_images import ImageCleaner
 from classes.data_preparation.clean_tabular import TabularDataCleaner
-from classes.ml_approach.ml_method import MachineLearningPredictor
-from classes.cnn_approach.tensorflow.tf_image_classifier import TFImageClassifier
-from classes.cnn_approach.tensorflow.tf_text_classifier import TFTextClassifier
-from classes.cnn_approach.tensorflow.tf_text_classifier_transformer import TFTextTransformerClassifier
-from classes.cnn_approach.tensorflow.tf_combine_classifier import TFImageTextClassifier
+from classes.ml.ml_method import MachineLearningPredictor
+from classes.dl.tensorflow.tf_image_classifier import TFImageClassifier
+from classes.dl.tensorflow.tf_text_classifier import TFTextClassifier
+from classes.dl.tensorflow.tf_text_classifier_transformer import TFTextTransformerClassifier
+from classes.dl.tensorflow.tf_combine_classifier import TFImageTextClassifier
 
 
 def main():

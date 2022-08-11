@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import transformers
 
 from tqdm import tqdm
-from classes.cnn_approach.base.base_classifier import BaseClassifier
+from classes.dl.base.base_classifier import BaseClassifier
 from sklearn.metrics import classification_report
 from torchinfo import summary
 from typing import Tuple, Dict, Union, List, Any

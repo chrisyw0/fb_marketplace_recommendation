@@ -5,7 +5,7 @@ import keras
 
 from typing import List, Tuple, Any
 from .tf_text_processing_constant import TFTextProcessingConstant
-from classes.cnn_approach.base.image_text_util import ImageTextUtil
+from classes.dl.base.image_text_util import ImageTextUtil
 
 
 class TFImageTextUtil(ImageTextUtil):

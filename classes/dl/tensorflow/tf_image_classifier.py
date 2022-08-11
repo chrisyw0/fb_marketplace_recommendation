@@ -10,8 +10,8 @@ from official.nlp import optimization
 
 from classes.data_preparation.prepare_dataset import DatasetHelper
 from .tf_base_classifier import TFBaseClassifier
-from classes.cnn_approach.tensorflow.utils.tf_image_text_util import TFImageTextUtil
-from classes.cnn_approach.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
+from classes.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
+from classes.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
 
 
 class TFImageClassifier(TFBaseClassifier):
