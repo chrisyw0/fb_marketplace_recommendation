@@ -7,10 +7,10 @@ from typing import Tuple, List, Any, Optional
 from dataclasses import field
 from sklearn.metrics import classification_report
 
-from classes.data_preparation.prepare_dataset import DatasetHelper
-from classes.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
-from classes.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
-from classes.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
+from fbRecommendation.dataPreparation.prepare_dataset import DatasetHelper
+from fbRecommendation.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
+from fbRecommendation.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
+from fbRecommendation.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
 
 
 class TFImageTextClassifier(TFBaseClassifier):
@@ -300,7 +300,7 @@ class TFImageTextClassifier(TFBaseClassifier):
 
     def train_model(self) -> None:
         """
-        Train the model with the training data. It applies early stop by monitoring loss of validation dataset.
+        Train the model with the training data.
         In each epoch, it will print out the loss and accuracy of the training and validation dataset
         in 'history' attribute. The records will be used for illustrating the performance of the model
         in later stage. There is a callback called tensorboard callback, which creates logs during the training process,

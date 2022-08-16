@@ -34,7 +34,7 @@ class TFDatasetGenerator:
             image_root_path: Image root path.
             image_shape: Image shape.
             batch_size: Batch size. It controls the number of records outputting in a batch.
-            class_num: Number of output classes of the labels
+            class_num: Number of output fbRecommendation of the labels
             temp_img_path: A path to store the resized and transformed image. In this output generator, each image
                            will only be transformed and resized if the image is not found in this path and,
                            it will be saved into this path. After that, it will be loaded into memory for any

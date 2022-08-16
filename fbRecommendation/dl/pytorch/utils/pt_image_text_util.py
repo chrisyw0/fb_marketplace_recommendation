@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from transformers import BertTokenizer, BertModel
 from typing import List, Tuple, Any, Dict
-from classes.dl.base.image_text_util import ImageTextUtil
+from fbRecommendation.dl.base.image_text_util import ImageTextUtil
 from torchvision.models import (
     resnet50,
     ResNet50_Weights,

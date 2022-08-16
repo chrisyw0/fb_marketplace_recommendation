@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import transformers
 
 from tqdm import tqdm
-from classes.dl.base.base_classifier import BaseClassifier
+from fbRecommendation.dl.base.base_classifier import BaseClassifier
 from sklearn.metrics import classification_report
 from torchinfo import summary
 from typing import Tuple, Dict, Union, List, Any
@@ -223,7 +223,10 @@ def train_and_validate_model(
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler.LambdaLR = None,
         summary_writer: SummaryWriter = None,
-        init_epoch: int = 1
+        init_epoch: int = 1,
+        early_stop_count: Union[int, None] = None,
+        early_stop_metric: str = "loss",
+        restore_weight: bool = True
 ) -> Dict[str, List[float]]:
     """
     Perform model training and validation. It processes the input data from training and validation dataloader, trains
@@ -242,6 +245,10 @@ def train_and_validate_model(
         init_epoch: The first epoch to be written into tensorboard log. It is usually 1 when the model hasn't been
                     trained before. It is useful when we fine-tune the model where the first epoch will be equal
                     to the number of epoch being trained.
+        early_stop_count: If the latest value of the metric doesn't go up or down for this number of epochs, stop
+                          training.
+        early_stop_metric: Metric to be measured on validation dataset for early stopping. Either "loss" or "accuracy"
+        restore_weight: Whether to restore the weights of the epoch giving the best metric value on validation dataset.
 
     Returns:
         Dict[str, List[float]]: A dictionary contains 4 keys and values:
@@ -256,6 +263,8 @@ def train_and_validate_model(
     result_train_accuracy = []
     result_val_loss = []
     result_val_accuracy = []
+    min_val_metric = -1
+    best_weights = None
 
     for epoch in range(epoch):
         # start training
@@ -370,6 +379,37 @@ def train_and_validate_model(
             val_loss,
             val_acc
         ))
+
+        # early stopping
+        if early_stop_count is not None:
+            if min_val_metric == -1 or \
+                    (early_stop_metric == "loss" and val_loss < min_val_metric) or \
+                    (early_stop_metric == "accuracy" and val_acc > min_val_metric):
+
+                best_weights = model.state_dict()
+
+            if (epoch - init_epoch) > early_stop_count:
+                if early_stop_metric == "loss":
+                    metrics_records = result_val_loss
+
+                    if metrics_records.index(min(metrics_records)) - len(metrics_records) > early_stop_count:
+                        print(f"validation loss doesn't go down in last {early_stop_count} epochs, stop training")
+
+                        if restore_weight:
+                            model.load_state_dict(best_weights)
+
+                        break
+
+                elif early_stop_metric == "accuracy":
+                    metrics_records = result_val_accuracy
+
+                    if metrics_records.index(max(metrics_records)) - len(metrics_records) > early_stop_count:
+                        print(f"validation accuracy doesn't go up in last {early_stop_count} epochs, stop training")
+
+                        if restore_weight:
+                            model.load_state_dict(best_weights)
+
+                        break
 
         # end of epoch
 

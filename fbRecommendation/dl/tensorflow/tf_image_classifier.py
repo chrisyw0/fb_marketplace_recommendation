@@ -7,10 +7,10 @@ from typing import Tuple, List, Any
 from sklearn.metrics import classification_report
 from dataclasses import field
 
-from classes.data_preparation.prepare_dataset import DatasetHelper
+from fbRecommendation.dataPreparation.prepare_dataset import DatasetHelper
 from .tf_base_classifier import TFBaseClassifier, get_optimizer
-from classes.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
-from classes.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
+from fbRecommendation.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
+from fbRecommendation.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
 
 
 class TFImageClassifier(TFBaseClassifier):
@@ -176,7 +176,7 @@ class TFImageClassifier(TFBaseClassifier):
         Create an CNN model based on RestNet50V2 or EfficientNetV2. The model consists of preprocessing layer,
         data augmentation layer, global averaging layer, RestNet50V2 model, dropout layer and
         finally the prediction layer. The input shape can be configured in the class attributes
-        input_shape and the output size will be equal to number of classes (determined in the
+        input_shape and the output size will be equal to number of fbRecommendation (determined in the
         prepare_data function).
 
         The model is compiled with AdamW optimiser together with learning rate scheduler. It takes advantages of
@@ -248,7 +248,9 @@ class TFImageClassifier(TFBaseClassifier):
 
     def train_model(self) -> None:
         """
-        Train a model with the training data. In each epoch, it will print out the loss and accuracy
+        Train a model with the training data. It applies early stop by monitoring loss of validation dataset.
+        If the model fails to improve for 5 epochs, it will stop training to avoid overfitting.
+        In each epoch, it will print out the loss and accuracy
         of the training and validation dataset in 'history' attribute. The records will be used for
         illustrating the performance of the model in later stage. There are 2 callbacks called early_stop_callback,
         tensorboard callback: early_stop_callback will detect whether the model is overfitted
@@ -281,10 +283,11 @@ class TFImageClassifier(TFBaseClassifier):
 
     def fine_tune_model(self) -> None:
         """
-        Fine-tuning the model by unfreeze the image based model. Since the based model is usually pre-trained with a
-        larger dataset, it will be better for us not to change the weights significantly, or we will lose the power of
-        transfer learning. It uses the same components for training and validation. The result will be appended in to
-        the history attribute.
+        Fine-tuning the model by unfreeze the image based model. It again applies early stop by monitoring loss of
+        validation dataset. If the model fails to improve for 5 epochs, it will stop training to avoid overfitting.
+        Since the based model is usually pre-trained with a larger dataset, it will be better for us not to change the
+        weights significantly, or we will lose the power of transfer learning. It uses the same components for training
+        and validation. The result will be appended in to the history attribute.
 
         """
         if self.fine_tune_base_model:

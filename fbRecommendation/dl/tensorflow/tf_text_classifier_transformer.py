@@ -7,10 +7,10 @@ from typing import Tuple, List, Any
 from dataclasses import field
 from sklearn.metrics import classification_report
 
-from classes.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
-from classes.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
-from classes.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
-from classes.data_preparation.prepare_dataset import DatasetHelper
+from fbRecommendation.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
+from fbRecommendation.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
+from fbRecommendation.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
+from fbRecommendation.dataPreparation.prepare_dataset import DatasetHelper
 
 
 class TFTextTransformerClassifier(TFBaseClassifier):
@@ -157,7 +157,7 @@ class TFTextTransformerClassifier(TFBaseClassifier):
         the maximum, making the input shape to (batch_size, max number of tokens, 1).
 
         The output of the model will be the predicted probability of each class, which is equaled to
-        (batch_size, num. of classes)
+        (batch_size, num. of fbRecommendation)
 
         The model is compiled with AdamW optimiser together with learning rate scheduler. It takes advantages of
         decreasing learning rate as well as the adaptive learning rate for each parameter in each optimisation steps.
@@ -208,7 +208,7 @@ class TFTextTransformerClassifier(TFBaseClassifier):
     def train_model(self) -> None:
         """
         Train the model with the training data. It applies early stop by monitoring loss of validation dataset.
-        If the model fails to improve for 8 epochs, it will stop training to avoid overfitting.
+        If the model fails to improve for 2 epochs, it will stop training to avoid overfitting.
         In each epoch, it will print out the loss and accuracy of the training and validation dataset
         in 'history' attribute. The records will be used for illustrating the performance of the model
         in later stage. There is a callback called tensorboard callback, which creates logs during the training process,

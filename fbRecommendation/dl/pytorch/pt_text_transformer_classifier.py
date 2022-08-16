@@ -6,16 +6,16 @@ from typing import Tuple, List, Any, Dict
 from dataclasses import field
 from torch.utils.tensorboard import SummaryWriter
 
-from classes.dl.pytorch.utils.pt_image_text_util import PTImageTextUtil
-from classes.dl.pytorch.pt_base_classifier import (
+from fbRecommendation.dl.pytorch.utils.pt_image_text_util import PTImageTextUtil
+from fbRecommendation.dl.pytorch.pt_base_classifier import (
     PTBaseClassifier,
     train_and_validate_model,
     evaluate_model,
     predict_model,
     prepare_optimizer_and_scheduler
 )
-from classes.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
-from classes.data_preparation.prepare_dataset import DatasetHelper
+from fbRecommendation.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
+from fbRecommendation.dataPreparation.prepare_dataset import DatasetHelper
 
 from transformers import AutoModel
 
@@ -178,7 +178,7 @@ class PTTextTransformerClassifier(PTBaseClassifier):
         the maximum, making the input shape to (batch_size, max number of tokens, 1).
 
         The output of the model will be the predicted probability of each class, which is equaled to
-        (batch_size, num. of classes)
+        (batch_size, num. of fbRecommendation)
 
         The model is compiled with AdamW optimiser together with learning rate scheduler. It takes advantages of
         decreasing learning rate as well as the adaptive learning rate for each parameter in each optimisation steps.
@@ -204,7 +204,7 @@ class PTTextTransformerClassifier(PTBaseClassifier):
     def train_model(self) -> None:
         """
         Train the model with the training data. It applies early stop by monitoring loss of validation dataset.
-        If the model fails to improve for 8 epochs, it will stop training to avoid overfitting.
+        If the model fails to improve for 2 epochs, it will stop training to avoid overfitting.
         In each epoch, it will print out the loss and accuracy of the training and validation dataset
         in 'history' attribute. The records will be used for illustrating the performance of the model
         in later stage. There is a callback called tensorboard callback, which creates logs during the training process,
@@ -237,7 +237,8 @@ class PTTextTransformerClassifier(PTBaseClassifier):
             epoch=self.epoch,
             optimizer=optimizer,
             scheduler=scheduler,
-            summary_writer=self.writer
+            summary_writer=self.writer,
+            early_stop_count=2
         )
 
         print("Finish training")

@@ -7,7 +7,7 @@ from dataclasses import field
 from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 
-from classes.data_preparation.prepare_dataset import DatasetHelper
+from fbRecommendation.dataPreparation.prepare_dataset import DatasetHelper
 from .pt_base_classifier import (
     PTBaseClassifier,
     train_and_validate_model,
@@ -15,8 +15,8 @@ from .pt_base_classifier import (
     predict_model,
     prepare_optimizer_and_scheduler
 )
-from classes.dl.pytorch.utils.pt_image_text_util import PTImageTextUtil
-from classes.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
+from fbRecommendation.dl.pytorch.utils.pt_image_text_util import PTImageTextUtil
+from fbRecommendation.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
 
 
 class PTImageModel(nn.Module):
@@ -202,7 +202,7 @@ class PTImageClassifier(PTBaseClassifier):
         Create an CNN model based on RestNet50V2 or EfficientNetV2. The model consists of preprocessing layer,
         data augmentation layer, global averaging layer, RestNet50V2 model, dropout layer and
         finally the prediction layer. The input shape can be configured in the class attributes
-        input_shape and the output size will be equal to number of classes (determined in the
+        input_shape and the output size will be equal to number of fbRecommendation (determined in the
         prepare_data function).
 
         The model is compiled with AdamW optimiser together with learning rate scheduler. It takes advantages of
@@ -234,11 +234,12 @@ class PTImageClassifier(PTBaseClassifier):
 
     def train_model(self) -> None:
         """
-        Train a model with the training data. In each epoch, it will print out the loss and accuracy
-        of the training and validation dataset in 'history' attribute. The records will be used for
-        illustrating the performance of the model in later stage. There are 2 callbacks called early_stop_callback,
-        tensorboard callback: early_stop_callback will detect whether the model is overfitted
-        and stop training while tensorboard callback will create logs during the training
+        Train a model with the training data. It applies early stop by monitoring loss of validation dataset.
+        If the model fails to improve for 5 epochs, it will stop training to avoid overfitting.
+        In each epoch, it will print out the loss and accuracy of the training and validation dataset in 'history'
+        attribute. The records will be used for illustrating the performance of the model in later stage.
+        There are 2 callbacks called early_stop_callback, tensorboard callback: early_stop_callback will detect whether
+        the model is overfitted and stop training while tensorboard callback will create logs during the training
         process, and these logs can then be uploaded to TensorBoard.dev.
 
         """
@@ -265,14 +266,17 @@ class PTImageClassifier(PTBaseClassifier):
             epoch=self.epoch,
             optimizer=optimizer,
             scheduler=scheduler,
-            summary_writer=self.writer
+            summary_writer=self.writer,
+            early_stop_count=5
         )
 
     def fine_tune_model(self) -> None:
         """
         Fine-tuning the model by unfreeze the image based model. Since the based model is usually pre-trained with a
         larger dataset, it will be better for us not to change the weights significantly, or we will lose the power of
-        transfer learning. It uses the same components for training and validation. The result will be appended in to
+        transfer learning. It again applies early stop by monitoring loss of validation dataset.
+        If the model fails to improve for 5 epochs, it will stop training to avoid overfitting.
+        It uses the same components for training and validation. The result will be appended in to
         the history attribute.
 
         """
@@ -303,7 +307,8 @@ class PTImageClassifier(PTBaseClassifier):
                 optimizer=optimizer,
                 scheduler=scheduler,
                 summary_writer=self.writer,
-                init_epoch=self.epoch + 1
+                init_epoch=self.epoch + 1,
+                early_stop_count=5
             )
 
             self.history['loss'].extend(fine_tune_history['loss'])

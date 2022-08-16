@@ -7,10 +7,10 @@ from typing import Tuple, List, Any
 from dataclasses import field
 from sklearn.metrics import classification_report
 
-from classes.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
-from classes.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
-from classes.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
-from classes.data_preparation.prepare_dataset import DatasetHelper
+from fbRecommendation.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
+from fbRecommendation.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
+from fbRecommendation.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
+from fbRecommendation.dataPreparation.prepare_dataset import DatasetHelper
 
 
 class TFTextClassifier(TFBaseClassifier):
@@ -201,7 +201,7 @@ class TFTextClassifier(TFBaseClassifier):
         the maximum, making the input shape to (batch_size, max number of tokens, 1).
 
         The output of the model will be the predicted probability of each class, which is equaled to
-        (batch_size, num. of classes)
+        (batch_size, num. of fbRecommendation)
 
         The model is compiled with AdamW optimiser together with learning rate scheduler. It takes advantages of
         decreasing learning rate as well as the adaptive learning rate for each parameter in each optimisation steps.
@@ -303,8 +303,10 @@ class TFTextClassifier(TFBaseClassifier):
         """
         Fine-tuning the model by unfreeze the embedding. Our Word2Vec model is freeze in the training stage and
         not optimised for our final prediction. This fune-tuning stage will fine-tune the weights of all layers with
-        lower learning rate to improve the performance of this model. It uses the same components for training
-        and validation. The result will be appended in to the history attribute.
+        lower learning rate to improve the performance of this model. It again applies early stop by monitoring loss of
+        validation dataset.If the model fails to improve for 5 epochs, it will stop training to avoid overfitting.
+        It uses the same components for training and validation. The result will be appended in to the
+        history attribute.
         """
 
         if self.fine_tune_base_model:
@@ -335,8 +337,9 @@ class TFTextClassifier(TFBaseClassifier):
                 write_graph=False
             )
 
-            # for some reason, the val accuracy keeps increasing even the val_loss increasing in last few epoch, this
-            # may happen there are some records contains
+            # For some reason, the val accuracy keeps increasing even the val_loss increasing in last few epoch. This
+            # may happen there are some outliner records that the model can't recognise, but the model actually improve
+            # on other normal records.
             early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
                                                                    patience=5,
                                                                    restore_best_weights=False)

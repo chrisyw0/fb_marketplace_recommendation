@@ -7,16 +7,16 @@ from dataclasses import field
 
 from torch.utils.tensorboard import SummaryWriter
 
-from classes.dl.pytorch.utils.pt_image_text_util import PTImageTextUtil
-from classes.dl.pytorch.pt_base_classifier import (
+from fbRecommendation.dl.pytorch.utils.pt_image_text_util import PTImageTextUtil
+from fbRecommendation.dl.pytorch.pt_base_classifier import (
     PTBaseClassifier,
     train_and_validate_model,
     evaluate_model,
     predict_model,
     prepare_optimizer_and_scheduler
 )
-from classes.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
-from classes.data_preparation.prepare_dataset import DatasetHelper
+from fbRecommendation.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
+from fbRecommendation.dataPreparation.prepare_dataset import DatasetHelper
 
 
 class PTTextModel(nn.Module):
@@ -229,7 +229,7 @@ class PTTextClassifier(PTBaseClassifier):
         the maximum, making the input shape to (batch_size, max number of tokens, 1).
 
         The output of the model will be the predicted probability of each class, which is equaled to
-        (batch_size, num. of classes)
+        (batch_size, num. of fbRecommendation)
 
         The model is compiled with AdamW optimiser together with learning rate scheduler. It takes advantages of
         decreasing learning rate as well as the adaptive learning rate for each parameter in each optimisation steps.
@@ -255,7 +255,8 @@ class PTTextClassifier(PTBaseClassifier):
 
     def train_model(self) -> None:
         """
-        Train the model with the training data.
+        Train the model with the training data. It applies early stop by monitoring loss of validation dataset.
+        If the model fails to improve for 5 epochs, it will stop training to avoid overfitting.
         In each epoch, it will print out the loss and accuracy of the training and validation dataset
         in 'history' attribute. The records will be used for illustrating the performance of the model
         in later stage. There is a callback called tensorboard callback which create logs during the training process,
@@ -286,7 +287,8 @@ class PTTextClassifier(PTBaseClassifier):
             epoch=self.epoch,
             optimizer=optimizer,
             scheduler=scheduler,
-            summary_writer=self.writer
+            summary_writer=self.writer,
+            early_stop_count=5
         )
 
         print("Finish training")
@@ -295,8 +297,10 @@ class PTTextClassifier(PTBaseClassifier):
         """
         Fine-tuning the model by unfreeze the embedding. Our Word2Vec model is freeze in the training stage and
         not optimised for our final prediction. This fune-tuning stage will fine-tune the weights of all layers with
-        lower learning rate to improve the performance of this model. It uses the same components for training
-        and validation. The result will be appended in to the history attribute.
+        lower learning rate to improve the performance of this model. It again applies early stop by monitoring loss of
+        validation dataset. If the model fails to improve for 5 epochs, it will stop training to avoid overfitting.
+        It uses the same components for training and validation. The result will be appended in to the
+        history attribute.
         """
 
         if self.fine_tune_base_model:
@@ -316,6 +320,9 @@ class PTTextClassifier(PTBaseClassifier):
                 self.fine_tune_epoch
             )
 
+            # For some reason, the val accuracy keeps increasing even the val_loss increasing in last few epoch. This
+            # may happen there are some outliner records that the model can't recognise, but the model actually improve
+            # on other normal records.
             fine_tune_history = train_and_validate_model(
                 self.model,
                 self.train_dl,
@@ -325,7 +332,9 @@ class PTTextClassifier(PTBaseClassifier):
                 optimizer=optimizer,
                 scheduler=scheduler,
                 summary_writer=self.writer,
-                init_epoch=self.epoch + 1
+                init_epoch=self.epoch + 1,
+                early_stop_count=5,
+                restore_weight=False
             )
 
             self.history['loss'].extend(fine_tune_history['loss'])
