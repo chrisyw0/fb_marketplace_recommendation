@@ -1,66 +1,6 @@
 # Facebook MarketPlace Search Ranking
 
-### WARNING
-```
-get_last_update(PROJECT)
->>> [16/6]
-
-get_status(README)
->>> OUTDATED!!!
-
-get_message(README)
->>> I have extended this project with EfficientNet and BERT. 
-    The results are in somewhere in colab notebook.
-    The tensorboard data is missing at the moment so this README is not updated.
-```
-
-## Instruction for installing Tensorflow and Pytorch
-
-### Tensorflow
-1. Install miniforge
-2. Create and activate conda environment using command 
-
-`conda env create -n <env name>`
-`conda activate <env name>`
-
-3. Install Python
-
-`conda install python=3.9`
-
-4. Install tensorflow 
-
-`conda install -c apple tensorflow-deps`
-`pip install tensorflow-macos`
-`pip install tensorflow-metal`
-
-5. Find the link for tensorflow-text matching your tensorflow and python version here
-https://github.com/sun1638650145/Libraries-and-Extensions-for-TensorFlow-for-Apple-Silicon/releases
-
-Install the wheel, e.g.
-
-`pip install https://github.com/sun1638650145/Libraries-and-Extensions-for-TensorFlow-for-Apple-Silicon/releases/download/v2.9/tensorflow_text-2.9.0-cp39-cp39-macosx_11_0_arm64.whl`
-
-6. Install tensorflow-hub and tf-models-official, as we install tensorflow-macos install of tensorflow, we should have --no-deps
-
-`pip install --no-deps tensorflow-hub tf-models-official`
-
-7. Install the remaining packages
-
-`pip install -r requirement_tf.txt`
-
-
-### Pytorch 
-
-1. Setup conda (same steps as Tensorflow 1-3)
-2. Pytorch 1.12 has MPS support so you can either choose stable version of nightly build version
-
-`conda install pytorch torchvision -c pytorch`
-`conda install pytorch torchvision -c pytorch-nightly`
-
-3. Install the remaining packages
-
-`pip install -r requirement_pt.txt`
-
+## Project Description
 This project aims at recommending buyers to a product by using a multimodal model trained by image and text datasets. Here are a few keynotes about the project: 
 
 - Processed and cleaned text and image datasets
@@ -68,35 +8,29 @@ This project aims at recommending buyers to a product by using a multimodal mode
 - Developed a recommendation system based on the demographic information about potential buyers using the FAISS library from Facebook
 - Created a pipeline to systematically clean new data and upsert it into a database
 - Containerized the model and orchestrated the containers using Kubernetes
-- Monitored and retrain the model using Kubeflow deployed on EKS 
+- Monitored and retrain the model using Kubeflow deployed on EKS
+
+## Installation
+Simply install requirement_pt.txt (PyTorch) or requirement_tf.txt (Tensorflow) using 
+```
+pip install -r <path to reqirement file>
+```
+
+If you are using M1, see the instructions on /install/README_m1.md. 
+
+At the time being, some modules haven't been fully supported running on mps (GPU of M1) device yet. For instance, torchvision.transform and EfficientNet model.
+So running on device with CUDA GPU or cloud services like Google Colab or Paperspace is suggested. 
 
 To run the program, simply call:
 ```python
 python main.py
 ```
 
+This will run Tensorflow 
+
 Or you can check the result from the [notebook](fb_marketplace_recommendation.ipynb) in this repo. 
 
-This program use environment variables to store credentials, please set the environment according to aws.yaml in your kernel accordingly for database credentials and the image download link of the dataset. 
-
-## Required package
-- Python
-- Numpy
-- Pandas
-- sqlalchemy
-- psycopg2
-- spacy
-- pyyaml
-- requests
-- tqdm
-- pillow
-- wordcloud
-- geopandas
-- scikit-learn
-- tensorflow
-- keras
-- tensorboard
-- gensim
+This program use environment variables to store credentials, please set the environment according to aws.yaml in your kernel accordingly for database credentials and the image download link of the dataset.
 
 ## Milestone 1
 
@@ -139,55 +73,54 @@ The average accuracy for the model is around 0.14
 
 We should never satisfy with machine learning models which gives only 14% accuracy. One possible solution is to use deep learning model. For deep leaning mode, it usually requires much more training data than machine learning model to achieve a certain level of performance. However, we only have a dataset with about 12000 images with 13 classes, which means each class has less than 1000 images. Luckily, we can use technique like transfer learning. There exists model that is well-trained with a huge dataset, which has the ability to capture the useful features in the images, and generate embeddings for the final prediction.
 
-To build our CNN model for category prediction, we use RestNet50 as the base model, together with data processing layer, data augmentation layer, global averaging layer, dropout layer, and dense layer and finally prediction layer. The input shape of the image is (256, 256, 3) and the output shape of the model is 13, which equals to the number of unique class in the dataset. 
+To build our image classification model, we use RestNet50 and EfficientNet as the base model, which both are pretained with ImageNet dataset, together with data transformation layer, global pooling layer, dropout layer, and linear layer with ReLu activation and finally prediction layer. 
+
+In detail:
+- Data transformation layer randomly rotates and flip the images to increase the versatility of the model, making sure the model can take images with different angles, and performs normalisation to make sure all the values are between [0, 1] (or [-1, 1] depending on the based model. Since the image based model are pretrained with ImageNet dataset, we use the same mean (0.485, 0.456, 0.406) and and standard deviation (0.229, 0.224, 0.225) for normalisation as suggested for the dataset.
+- Average pooling layer gathers the features from different dimensions (width, height and channel).
+- Dropout layer avoids the model to be overfitted by randomly drop out the weight of some hidden layers.
+- Linear layer reduce the number of hidden layers with activation function ReLU to non-linearly transform the value in each hidden layers, which will be the embedding for our combined model.
+- Final prediction layer, which is also a linear layer without any activation function, gives us the tensor with the same size of number of categories, then we can use softmax to calculate the probability for each class and find out the predicted category.
+
+The input shape of the image is (300, 300, 3) and the output shape of the model is 13, which equals to the number of unique class in the dataset.
+
+### Optimizer, scheduler and early stopping
+The optimiser is AdamW, initialised with a polynomial decay scheduler with initial learning rate. We can benefit from using this optimiser by having an adjusted learning rate for each parameter, training quickly in the first few epochs but getting slowly later, to improve the model performance. A warmup is also applied to the first 10% of the training dataset of the epoch, to let the optimiser get used to the data before actually adjust the weights of the model.
+Early stopping is also being applied to avoid the model being over-trained and hence avoid overfitting. Also, if the early stopping is triggered, the model's weights from the lowest loss epoch will be restored to make sure we have the best weights of the model.
+
+### Training and fine-tuning
+The model training includes two stages, training and fine-tuning. We will use this approach for training our text and combine models as well. 
+
+**Training**
+
+The image based model is freezed in the first 12 (8 for EfficientNet) epochs, this allows us to train the layers other than the based model in a higher learning rate. The initial learning rate is 0.001 and early stopping is 5, which means it stop training after the loss doesn't decrease for 5 epochs.  
+
+**Fine-tuning**
+
+The image based model is unfreeze and the whole model is trained for another 8 epochs with lower learning rate 0.00001. Since the image based model is pre-trained with a much larger dataset, and also other layers are trained in the training stage, what we need is to fine-tune all the layers to make sure their weights are trained with our dataset but not being overfitted to the training data. This is one technique using the pre-trained model for transfer learning, we are training the models with our dataset but not over doing it as the weights of the based model are well-trained for capturing features from a larger dataset. The early stopping is also 5 in the fine-tuning stage. 
+
 
 The model summary is as follows:
 
-    Model: "sequential"
-    _________________________________________________________________
-     Layer (type)                Output Shape              Param #
-    =================================================================
-     embedding (Embedding)       (None, 1458, 300)         8397600
-    
-     conv1d (Conv1D)             (None, 1456, 48)          43248
-    
-     average_pooling1d (AverageP  (None, 728, 48)          0
-     ooling1D)
-    
-     dropout (Dropout)           (None, 728, 48)           0
-    
-     conv1d_1 (Conv1D)           (None, 726, 24)           3480
-    
-     average_pooling1d_1 (Averag  (None, 363, 24)          0
-     ePooling1D)
-    
-     flatten (Flatten)           (None, 8712)              0
-    
-     dropout_1 (Dropout)         (None, 8712)              0
-    
-     dense (Dense)               (None, 256)               2230528
-    
-     dropout_2 (Dropout)         (None, 256)               0
-    
-     dense_1 (Dense)             (None, 13)                3341
-    
-    =================================================================
-    Total params: 10,678,197
-    Trainable params: 2,280,597
-    Non-trainable params: 8,397,600
+    TODO: image summary
 
+TODO: image model architecture
 ![Image model graph](readme_images/image_model.png)
 
-We use the same training, validation and testing dataset as the machine model. The overall accuracy is about 55%, much better than logistic regression.  
+The same training, validation and testing datasets are used as the machine learning model.     
 
-The logs of model training will be available in ./logs/image_model/, once the process completed, we can use the following command to upload the result into a Tensorboard.
+The overall accuracy is about <> (RestNet50) and <> (EfficientNetB3), much better than logistic regression.  
+
+The logs of model training will be available in the log_path attribute of the classifier, once the process completed, we can use the following command to upload the result into a Tensorboard.
 
 ```commandline
-tensorboard dev upload --logdir ./logs/image_model \
-  --name "RestNetV50 based CNN image classification model" \
-  --description "Training results for CNN models" \
+tensorboard dev upload --logdir ./logs/<log_path of the model> \
+  --name <model name> \
+  --description <description> \
   --one_shot
 ```
+
+The same command is used for uploading logs in the Tensorboard for other models
 
 Then we can navigate to link showing on the screen and see the plots of your result.
 
@@ -196,15 +129,24 @@ https://tensorboard.dev/experiment/Ze8GNeW5T2yhepr8YKgnWA/#scalars&runSelectionS
 
 ![CNN Model Accuracy](readme_images/image_accuracy.png)
 
-## Milestone 4 
+## Milestone 4
 
-The above only can handle image data. In fact, we do have text data like product name and description. This session describes how to build a CNN model for the same classification problem. 
+The above only can handle image data. In fact, we do have text data like product name and description. This session describes how to build a CNN model for the same classification problem. Since no machine learning and deep learning model can accept text as input, we need to encode the text into numeric features. This is called word embedding. In this session, we use two approaches: Word2Vec and BERT.    
 
-First, we have to transform the text into usable features. To achieve this, we have to clean and process the text data by removing symbols, turning all the text into lowercase and splitting the text into tokens. We then train a Word2Vec embedding model using CBOW algorithm. As Word2Vec training doesn't require any data related to our prediction (category), we can use all of our name and description to train the embedding model. After this, we get a embedding model that can generate a 300 dimension vector for each unique word in the dataset.
+### Word2Vec
+
+In this session, we train our Word2Vec model from our dataset. Before training, we have to clean and process the text data by removing symbols, turning all the text into lowercase and splitting the text into tokens. We then train a Word2Vec embedding model using CBOW algorithm. As Word2Vec training doesn't require any data related to our prediction (category), we can use all of our name and description to train the embedding model. After this, we get a embedding model that can generate a 300 dimension vector for each unique word in the dataset.
 
 Second, we transform the dataset into token index. Since we can get a (number of unique words, 300) a matrix representing the weight for each word from the embedding model. What we can do is to transform each word in the dataset into the token index. Then we can create model that can refer to that weight of the embedding to create word embedding of each word.
 
 Similar to image classification model, we design a CNN model with input shape (1458, 1) and output shape 13, where 1458 is the maximum number of tokens in a record in the dataset, and 13 refers to the number of unique class in the dataset.
+
+It consists convolution layers, average pooling layers, a flatten layer, dropout layers, a linear layer with ReLU activation function and a linear layer as a prediction layer.
+- Convolution layers and average pooling layers are used to capture features between the text embedding. 
+- Flatten is used to reduce the data dimension to make it 1D tensor. 
+- Dropout layer avoids the model to be overfitted by randomly drop out the weight of some hidden layers.
+- Linear layer reduce the number of hidden layers with activation function ReLU to non-linearly transform the value in each hidden layers, which will be the embedding for our combined model.
+- Final prediction layer, which is also a linear layer without any activation function, gives us the tensor with the same size of number of categories, then we can use softmax to calculate the probability for each class and find out the predicted category.
 
 The model summary is as follows: 
 
@@ -243,113 +185,82 @@ The model summary is as follows:
 
 ![Text model graph](readme_images/text_model.png)
 
-We use the same training, validation and testing dataset as the machine model. The overall accuracy is about 51%, again, much better than machine learning classification model.  
+### Training and fine-tuning
 
-The logs of model training will be available in ./logs/text_model/, once the process completed, we can use the following command to upload the result into a Tensorboard.
+**Training** 
 
-```commandline
-tensorboard dev upload --logdir ./logs/text_model \
-  --name "CNN text classification model" \
-  --description "Training results for CNN models" \
-  --one_shot
-```
+The Word2Vec embedding layer is freezed in the first 20 epochs, this allows us to train the layers other than the based model in a higher learning rate. The initial learning rate is 0.001 and early stopping is 5, which means it stop training after the loss doesn't decrease for 5 epochs.  
 
-Then we can navigate to link showing on the screen and see the plots of your result.
+**Fine-tuning**
+
+The Word2Vec embedding layer is unfreeze and the whole model is trained for another 15 epochs with lower learning rate 0.0005 and 5 rounds early stopping. But unlike to image model, we don't restore the weight when early stopping is trigger. The reason is from the experiment, the validation accuracy kept increasing even the validation loss was increasing in last few epochs. This may happen there are some outliner records that the model can't recognise, but the model actually improve on other normal records.  
+
+We use the same training, validation and testing dataset as the machine model. The overall accuracy is about <>%, again, much better than machine learning classification model.
 
 Here is the result for this model:
-https://tensorboard.dev/experiment/9u1q6KkzTzaJm5I6fVwO7Q/#scalars
+
 
 ![CNN Model Accuracy](readme_images/text_accuracy.png)
+
+
+### BERT
+Apart from Word2Vec, we can also use transformer based word embedding model to encode the text, which is proved to be a better model to capture features from text in many situations. Again, as there are lots of pre-trained models available, we can do transfer learning again to build our model. The pre-trained model we choose is BERT based cased model. The pre-trained model comes with the tokenizer which can convert the text into token indices and attention mask.
+The pre-trained model usually being trained with some tasks like text classification. While the output from the last hidden layer can be represented as the word embedding, we can also use the "pooler output" which contains the embedding for the whole sentence or even a paragraph. As mentioned, this output is generated for the pre-trained task so it should consist the features captured from the text.
+In our model, we use this pooler output generated from the embedding model as the text embedding.
+
+Our model consists of an embedding layer, a linear layer with ReLU activation function, a dropout layer and a final linear layer as the prediction layer.
+- Embedding layer convert tokens into word embedding and sentence embedding
+- Dropout layer avoids the model to be overfitted by randomly drop out the weight of some hidden layers.
+- Linear layer reduce the number of hidden layers with activation function ReLU to non-linearly transform the value in each hidden layers, which will be the embedding for our combined model.
+- Final prediction layer, which is also a linear layer without any activation function, gives us the tensor with the same size of number of categories, then we can use softmax to calculate the probability for each class and find out the predicted category.
+
+The model summary is as follows: 
+
+    TODO: model summary
+
+TODO: model architecture
+![Text model graph](readme_images/.png)
+
+### Training and fine-tuning
+
+**Fine-tuning**
+
+Since we don't have many layers to train except from the embedding model. We perform fine-tuning only for this model. 
+The BERT embedding layer is unfreeze and the whole model is trained for 5 epochs with a very low learning rate 0.00002 and 2 rounds early stopping.
+
+We use the same training, validation and testing dataset as the machine model. The overall accuracy is about <>%, again, much better than machine learning classification model.
+
+Here is the result for this model:
+
+TODO: model result
+![CNN Model Accuracy](readme_images/<>.png)
+ 
 
 ## Milestone 5 
 
 In previous milestones, we demonstrate how to input image and text into the models to perform classification. In fact, we can combine them into a single model.
 
-Since there is no single method from Tensorflow/Keras can allow user generates dataset with text and images at the same time, it adds challenges building the dataset as well as the model. In this project, I use dataset generator to create a dataset, which can output a batch of text and image records at a time. 
-
-Also, as the model complexity increases, I create a separate class for the actual CNN model (inherent the tf.keras.Model) for better readability.
+TODO: combine model summary
 
 The mode summary is as follows:
 
-    _________________________________________________________________
-     Layer (type)                Output Shape              Param #   
-    =================================================================
-     embedding (Embedding)       multiple                  8397600   
-                                                                     
-     conv1d (Conv1D)             multiple                  43248     
-                                                                     
-     average_pooling1d (AverageP  multiple                 0         
-     ooling1D)                                                       
-                                                                     
-     dropout (Dropout)           multiple                  0         
-                                                                     
-     conv1d_1 (Conv1D)           multiple                  3480      
-                                                                     
-     average_pooling1d_1 (Averag  multiple                 0         
-     ePooling1D)                                                     
-                                                                     
-     flatten (Flatten)           multiple                  0         
-                                                                     
-     dropout_1 (Dropout)         multiple                  0         
-                                                                     
-     dense (Dense)               multiple                  1115264   
-                                                                     
-     dropout_2 (Dropout)         multiple                  0         
-                                                                     
-     sequential (Sequential)     (32, 256, 256, 3)         0         
-                                                                     
-     resnet50v2 (Functional)     (None, 8, 8, 2048)        23564800  
-                                                                     
-     global_average_pooling2d (G  multiple                 0         
-     lobalAveragePooling2D)                                          
-                                                                     
-     dropout_3 (Dropout)         multiple                  0         
-                                                                     
-     dense_1 (Dense)             multiple                  262272    
-                                                                     
-     dropout_4 (Dropout)         multiple                  0         
-                                                                     
-     dense_2 (Dense)             multiple                  3341      
-                                                                     
-    =================================================================
-    Total params: 33,390,005
-    Trainable params: 1,427,605
-    Non-trainable params: 31,962,400
-    _________________________________________________________________
+    TODO: combine model summary
 
-![Combine model graph](readme_images/image_text_model.png)
+TODO: combine model graph
+![Combine model graph](readme_images/<>.png)
 
-We use the same training, validation and testing dataset as the machine model. The overall accuracy is about 51%, again, much better than machine learning classification model.  
-
-The logs of model training will be available in ./logs/image_text_model/, once the process completed, we can use the following command to upload the result into a Tensorboard.
-
-```commandline
-tensorboard dev upload --logdir ./logs/image_text_model \
-  --name "Combined CNN classification model" \
-  --description "Training results for CNN models" \
-  --one_shot
-```
-
-Then we can navigate to link showing on the screen and see the plots of your result.
+We use the same training, validation and testing dataset as the machine model. The overall accuracy is about <>, again, much better than machine learning classification model.
 
 Here is the result for this model:
-https://tensorboard.dev/experiment/sBwpognaSqa3Q55UN5G4Yg/#scalars
 
+TODO: combine model result
+<>
 
-![CNN Model Accuracy](readme_images/image_text_accuracy.png)
+![CNN Model Accuracy](readme_images/<>.png)
 
 
 ## TODO:
-- **[Issue]** Model graph not showing the model structure for combined model.
-- **[Milestone 6]** Setup Kubeflow.
-- **[Milestone 7]** Deploy the model into Kubeflow.
-- **[Enhancement][ML]** Enhance machine learning models, use grid search and hyperparameters tuning.
-- **[Enhancement][Image Model]** Use other based line model as our transfer learning part, compare the performance.
-- **[Enhancement][Text Model]** Use pre-trained transformer based word embedding model instead of Word2Vec, compare the performance.
-- **[Enhancement][Text Model]** Use RNN (LSTM/GRU) or Transformer layer instead of CNN for text model, compare the performance.
-- **[Learning]** Create API for prediction.
-- **[Learning]** Pytorch everything.
-- **[Learning]** Price prediction.
+- Create API for prediction.
 
 ## Reference
 
