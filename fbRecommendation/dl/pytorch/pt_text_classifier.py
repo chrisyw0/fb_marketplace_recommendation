@@ -108,10 +108,10 @@ class PTTextClassifier(PTBaseClassifier):
     dropout_conv: float = 0.5
     dropout_pred: float = 0.3
     learning_rate: float = 0.001
-    epoch: int = 20
+    epoch: int = 15
 
     fine_tune_base_model: bool = True
-    fine_tune_learning_rate: float = 5e-3
+    fine_tune_learning_rate: float = 0.001
     fine_tune_epoch: int = 15
 
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
@@ -334,6 +334,7 @@ class PTTextClassifier(PTBaseClassifier):
                 summary_writer=self.writer,
                 init_epoch=self.epoch + 1,
                 early_stop_count=5,
+                early_stop_metric="accuracy",
                 restore_weight=False
             )
 

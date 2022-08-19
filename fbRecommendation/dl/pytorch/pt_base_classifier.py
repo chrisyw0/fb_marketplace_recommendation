@@ -385,14 +385,14 @@ def train_and_validate_model(
             if min_val_metric == -1 or \
                     (early_stop_metric == "loss" and val_loss < min_val_metric) or \
                     (early_stop_metric == "accuracy" and val_acc > min_val_metric):
-
                 best_weights = model.state_dict()
 
-            if (epoch - init_epoch) > early_stop_count:
+            if (current_epoch - init_epoch) > early_stop_count:
                 if early_stop_metric == "loss":
                     metrics_records = result_val_loss
+                    min_index = metrics_records.index(min(metrics_records))
 
-                    if metrics_records.index(min(metrics_records)) - len(metrics_records) > early_stop_count:
+                    if len(metrics_records) - min_index > early_stop_count:
                         print(f"validation loss doesn't go down in last {early_stop_count} epochs, stop training")
 
                         if restore_weight:
@@ -402,8 +402,9 @@ def train_and_validate_model(
 
                 elif early_stop_metric == "accuracy":
                     metrics_records = result_val_accuracy
+                    max_index = metrics_records.index(max(metrics_records))
 
-                    if metrics_records.index(max(metrics_records)) - len(metrics_records) > early_stop_count:
+                    if len(metrics_records) - max_index > early_stop_count:
                         print(f"validation accuracy doesn't go up in last {early_stop_count} epochs, stop training")
 
                         if restore_weight:
