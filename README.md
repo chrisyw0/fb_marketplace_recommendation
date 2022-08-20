@@ -102,14 +102,92 @@ The image based model is unfreeze and the whole model is trained for another 8 e
 
 The model summary is as follows:
 
-    TODO: image summary
+    Model: "tf_image_model_RestNet50"
+    ____________________________________________________________________________
+     Layer (type)                Output Shape              Param #   Trainable  
+    ============================================================================
+     input_1 (InputLayer)        [(None, 300, 300, 3)]     0         Y          
+                                                                                
+     img_augmentation (Sequentia  (None, 300, 300, 3)      0         Y          
+     l)                                                                         
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | random_flip (RandomFlip)  (None, 300, 300, 3)       0         Y          |
+    |                                                                          |
+    | random_rotation (RandomRota  (None, 300, 300, 3)    0         Y          |
+    | tion)                                                                    |
+    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+     tf.math.truediv (TFOpLambda  (None, 300, 300, 3)      0         Y          
+     )                                                                          
+                                                                                
+     tf.math.subtract (TFOpLambd  (None, 300, 300, 3)      0         Y          
+     a)                                                                         
+                                                                                
+     image_sequential (Sequentia  (None, 256)              25925376  Y          
+     l)                                                                         
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | resnet50v2 (Functional)   (None, 10, 10, 2048)      23564800  Y          |
+    |                                                                          |
+    | pooling (GlobalAveragePooli  (None, 2048)           0         Y          |
+    | ng2D)                                                                    |
+    |                                                                          |
+    | dropout_0 (Dropout)       (None, 2048)              0         Y          |
+    |                                                                          |
+    | dense_0 (Dense)           (None, 1024)              2098176   Y          |
+    |                                                                          |
+    | dense_1 (Dense)           (None, 256)               262400    Y          |
+    |                                                                          |
+    | dropout_1 (Dropout)       (None, 256)               0         Y          |
+    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+     prediction (Dense)          (None, 13)                3341      Y          
+                                                                                
+    ============================================================================
+    Total params: 25,928,717
+    Trainable params: 25,837,837
+    Non-trainable params: 90,880
+    ______________________________
 
-TODO: image model architecture
-![Image model graph](readme_images/image_model.png)
+    Model: "tf_image_model_EfficientNetB3"
+    ____________________________________________________________________________
+     Layer (type)                Output Shape              Param #   Trainable  
+    ============================================================================
+     input_1 (InputLayer)        [(None, 300, 300, 3)]     0         Y          
+                                                                                
+     img_augmentation (Sequentia  (None, 300, 300, 3)      0         Y          
+     l)                                                                         
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | random_flip (RandomFlip)  (None, 300, 300, 3)       0         Y          |
+    |                                                                          |
+    | random_rotation (RandomRota  (None, 300, 300, 3)    0         Y          |
+    | tion)                                                                    |
+    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+     image_sequential (Sequentia  (None, 256)              14766910  Y          
+     l)                                                                         
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | efficientnetv2-b3 (Function  (None, 10, 10, 1536)   12930622  Y          |
+    | al)                                                                      |
+    | pooling (GlobalAveragePooli  (None, 1536)           0         Y          |
+    | ng2D)                                                                    |
+    |                                                                          |
+    | dropout_0 (Dropout)       (None, 1536)              0         Y          |
+    |                                                                          |
+    | dense_0 (Dense)           (None, 1024)              1573888   Y          |
+    |                                                                          |
+    | dense_1 (Dense)           (None, 256)               262400    Y          |
+    |                                                                          |
+    | dropout_1 (Dropout)       (None, 256)               0         Y          |
+    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+     prediction (Dense)          (None, 13)                3341      Y          
+                                                                                
+    ============================================================================
+    Total params: 14,770,251
+    Trainable params: 14,551,819
+    Non-trainable params: 218,432
+
+[<img src="./readme_images/image_model.png" width="250"/>](image_model.png)
 
 The same training, validation and testing datasets are used as the machine learning model.     
 
-The overall accuracy is about <> (RestNet50) and <> (EfficientNetB3), much better than logistic regression.  
+The accuracies for testing dataset are 0.59 (RestNet50) and 0.64 (EfficientNetB3), much better than logistic regression.  
 
 The logs of model training will be available in the log_path attribute of the classifier, once the process completed, we can use the following command to upload the result into a Tensorboard.
 
@@ -216,7 +294,54 @@ Our model consists of an embedding layer, a linear layer with ReLU activation fu
 
 The model summary is as follows: 
 
-    TODO: model summary
+    Model: "tf_text_model_BERT"
+    ____________________________________________________________________________
+     Layer (type)                Output Shape              Param #   Trainable  
+    ============================================================================
+     input (InputLayer)          [(None,)]                 0         Y          
+                                                                                
+     text_seq_layer_transformer   (None, 256)              10850713  Y          
+     (Functional)                                          7                    
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | input (InputLayer)        [(None,)]                 0         Y          |
+    |                                                                          |
+    | keras_layer (KerasLayer)  {'input_mask': (None, 12  0         N          |
+    |                           8),                                            |
+    |                            'input_word_ids': (None                       |
+    |                           , 128),                                        |
+    |                            'input_type_ids': (None                       |
+    |                           , 128)}                                        |
+    |                                                                          |
+    | keras_layer_1 (KerasLayer)  {'sequence_output': (Non  10831027  Y        |
+    |                           e, 128, 768),             3                    |
+    |                            'default': (None, 768),                       |
+    |                            'encoder_outputs': [(No                       |
+    |                           ne, 128, 768),                                 |
+    |                            (None, 128, 768),                             |
+    |                            (None, 128, 768),                             |
+    |                            (None, 128, 768),                             |
+    |                            (None, 128, 768),                             |
+    |                            (None, 128, 768),                             |
+    |                            (None, 128, 768),                             |
+    |                            (None, 128, 768),                             |
+    |                            (None, 128, 768),                             |
+    |                            (None, 128, 768),                             |
+    |                            (None, 128, 768),                             |
+    |                            (None, 128, 768)],                            |
+    |                            'pooled_output': (None,                       |
+    |                            768)}                                         |
+    |                                                                          |
+    | dropout (Dropout)         (None, 768)               0         Y          |
+    |                                                                          |
+    | dense_1 (Dense)           (None, 256)               196864    Y          |
+    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+     prediction (Dense)          (None, 13)                3341      Y          
+                                                                                
+    ============================================================================
+    Total params: 108,510,478
+    Trainable params: 108,510,477
+    Non-trainable params: 1
+
 
 TODO: model architecture
 ![Text model graph](readme_images/.png)

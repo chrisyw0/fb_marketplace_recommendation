@@ -20,10 +20,13 @@ class TFBaseClassifier(BaseClassifier):
 
         os.makedirs('./model/', exist_ok=True)
 
-        plot_model(self.model,
-                   to_file=f'./model/{self.model_name}.png',
-                   show_shapes=True,
-                   show_layer_names=True)
+        plot_model(
+            self.model,
+            to_file=f'./model/{self.model_name}.png',
+            show_shapes=True,
+            show_layer_names=True,
+            expand_nested=True
+        )
 
     def visualise_performance(self) -> None:
         """
@@ -52,6 +55,8 @@ class TFBaseClassifier(BaseClassifier):
         Create a model with saved weight
         """
 
+        self.prepare_data()
+        self.process_load_model()
         self.create_model()
         self.model.load_weights(f"{self.model_path}model.ckpt")
 

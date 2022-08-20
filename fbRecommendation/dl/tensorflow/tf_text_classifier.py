@@ -1,7 +1,6 @@
 import pandas as pd
 import tensorflow as tf
 import numpy as np
-import math
 
 from typing import Tuple, List, Any
 from dataclasses import field
@@ -34,11 +33,11 @@ class TFTextClassifier(TFBaseClassifier):
                                               Defaults to 0.3.
 
         learning_rate (float, optional): Learning rate of the model. Defaults to 0.001.
-        epoch (float, optional): Epoch of the model. Defaults to 20.
+        epoch (float, optional): Epoch of the model. Defaults to 15.
 
         fine_tune_base_model (bool, optional): Whether fine-tuning model is required. Default to True.
         fine_tune_learning_rate (float, optional): Learning rate of the model in the fine-tuning stage.
-                                                   Defaults to 1e-5.
+                                                   Defaults to 0.001.
         fine_tune_epoch: (int, optional): Number of epochs in fine-tuning stage. Defaults to 15.
 
         metrics (List[str], optional):  list of metrics using for model evaluation. Defaults to ["accuracy"].
@@ -56,10 +55,10 @@ class TFTextClassifier(TFBaseClassifier):
     dropout_conv: float = 0.5
     dropout_pred: float = 0.3
     learning_rate: float = 0.001
-    epoch: int = 20
+    epoch: int = 15
 
     fine_tune_base_model: bool = True
-    fine_tune_learning_rate: float = 5e-3
+    fine_tune_learning_rate: float = 0.001
     fine_tune_epoch: int = 15
 
     metrics: List[str] = field(default_factory=lambda: ["accuracy"])
@@ -340,7 +339,7 @@ class TFTextClassifier(TFBaseClassifier):
             # For some reason, the val accuracy keeps increasing even the val_loss increasing in last few epoch. This
             # may happen there are some outliner records that the model can't recognise, but the model actually improve
             # on other normal records.
-            early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
+            early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy',
                                                                    patience=5,
                                                                    restore_best_weights=False)
 

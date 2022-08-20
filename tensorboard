@@ -1,0 +1,34 @@
+tensorboard dev upload --logdir ./logs/tf_image_model_RestNet50 \
+  --name "Fine-tune RestNet50" \
+  --description "Image classification - RestNet50" \
+  --one_shot
+
+tensorboard dev upload --logdir ./logs/tf_image_model_EfficientNet \
+  --name "Fine-tune EfficientNet" \
+  --description "Image classification - EfficientNet" \
+  --one_shot
+
+tensorboard dev upload --logdir ./logs/tf_text_model_Word2Vec \
+  --name "Word2Vec" \
+  --description "Text classification - Word2Vec" \
+  --one_shot
+
+tensorboard dev upload --logdir ./logs/tf_text_model_BERT \
+  --name "Fine-tune BERT" \
+  --description "Text classification - BERT" \
+  --one_shot
+
+tensorboard dev upload --logdir ./logs/tf_image_text_model_RestNet50_Word2Vec \
+  --name "Combine model - RestNet50 + Word2Vec" \
+  --description "Classification - RestNet50 + Word2Vec" \
+  --one_shot
+
+tensorboard dev upload --logdir ./logs/tf_image_text_model_EfficientNetB3_BERT \
+  --name "Combine model - EfficientNet + BERT" \
+  --description "Classification - EfficientNet + BERT" \
+  --one_shot
+
+
+
+
+
