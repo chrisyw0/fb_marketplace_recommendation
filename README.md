@@ -99,12 +99,11 @@ The image based model is freezed in the first 12 (8 for EfficientNet) epochs, th
 
 The image based model is unfreeze and the whole model is trained for another 8 epochs with lower learning rate 0.00001. Since the image based model is pre-trained with a much larger dataset, and also other layers are trained in the training stage, what we need is to fine-tune all the layers to make sure their weights are trained with our dataset but not being overfitted to the training data. This is one technique using the pre-trained model for transfer learning, we are training the models with our dataset but not over doing it as the weights of the based model are well-trained for capturing features from a larger dataset. The early stopping is also 5 in the fine-tuning stage. 
 
-
 The model summary is as follows:
 
 **RestNet50**
 
-[<img src="./readme_images/image_model.png" width="500"/>](readme_images/tf_image_model_RestNet50.png)
+[<img src="./readme_images/tf_image_model_RestNet50.png" width="1024"/>](readme_images/tf_image_model_RestNet50.png)
 
     Model: "tf_image_model_RestNet50"
     ____________________________________________________________________________
@@ -153,7 +152,7 @@ The model summary is as follows:
 
 **EfficientNetB3**
 
-[<img src="./readme_images/image_model.png" width="500"/>](readme_images/tf_image_model_EfficientNetB3.png)
+[<img src="./readme_images/tf_image_model_EfficientNetB3.png" width="1024"/>](readme_images/tf_image_model_EfficientNetB3.png)
 
     Model: "tf_image_model_EfficientNetB3"
     ____________________________________________________________________________
@@ -214,13 +213,13 @@ Here is the result for this model:
 
 RestNet50: 
 
-![Restnet50 model result](readme_images/tf_restnet50_metrics.png)
+[<img src="./readme_images/tf_restnet50_metrics.png" width="300"/>](readme_images/tf_restnet50_metrics.png)
 
 https://tensorboard.dev/experiment/HwNtV7ojTdmgOP4hjC0gxQ/
 
 EfficientNet: 
 
-![EfficientNet model result](readme_images/tf_efficientnet_metrics.png)
+[<img src="./readme_images/tf_efficientnet_metrics.png" width="300"/>](readme_images/tf_efficientnet_metrics.png)
 
 https://tensorboard.dev/experiment/Yq24bbyPQNaKcQb4dVBYvA/
 
@@ -243,7 +242,7 @@ It consists convolution layers, average pooling layers, a flatten layer, dropout
 - Linear layer reduce the number of hidden layers with activation function ReLU to non-linearly transform the value in each hidden layers, which will be the embedding for our combined model.
 - Final prediction layer, which is also a linear layer without any activation function, gives us the tensor with the same size of number of categories, then we can use softmax to calculate the probability for each class and find out the predicted category.
 
-[<img src="./readme_images/tf_text_model_Word2Vec.png" width="500"/>](readme_images/tf_text_model_Word2Vec.png)
+[<img src="./readme_images/tf_text_model_Word2Vec.png" width="1024"/>](readme_images/tf_text_model_Word2Vec.png)
 
 The model summary is as follows:
 
@@ -295,7 +294,7 @@ We use the same training, validation and testing dataset as the machine model. T
 
 Here is the result for this model:
 
-![Word2Vec Model result](readme_images/tf_word2vec_metrics.png)
+[<img src="./readme_images/tf_word2vec_metrics.png" width="300"/>](readme_images/tf_word2vec_metrics.png)
 
 https://tensorboard.dev/experiment/LdNgKC7CQBKhdWgLa1WhYA/
 
@@ -310,7 +309,7 @@ Our model consists of an embedding layer, a linear layer with ReLU activation fu
 - Linear layer reduce the number of hidden layers with activation function ReLU to non-linearly transform the value in each hidden layers, which will be the embedding for our combined model.
 - Final prediction layer, which is also a linear layer without any activation function, gives us the tensor with the same size of number of categories, then we can use softmax to calculate the probability for each class and find out the predicted category.
 
-[<img src="./readme_images/tf_text_model_BERT.png" width="500"/>](readme_images/tf_text_model_BERT.png)
+[<img src="./readme_images/tf_text_model_BERT.png" width="1024"/>](readme_images/tf_text_model_BERT.png)
 
 The model summary is as follows: 
 
@@ -362,7 +361,6 @@ The model summary is as follows:
     Trainable params: 108,510,477
     Non-trainable params: 1
 
-[<img src="./readme_images/tf_text_model_BERT.png" width="500"/>](readme_images/tf_text_model_BERT.png)
 
 ### Training and fine-tuning
 
@@ -377,7 +375,7 @@ We use the same training, validation and testing dataset as the machine model. T
 
 Here is the result for this model:
 
-![CNN Model Accuracy](readme_images/tf_BERT_metrics.png)
+[<img src="./readme_images/tf_BERT_metrics.png" width="300"/>](readme_images/tf_BERT_metrics.png)
 
 https://tensorboard.dev/experiment/W1fq94q0ROynXpbCmxK46Q/
  
@@ -390,7 +388,7 @@ In previous milestones, we demonstrate how to input image and text into the mode
 
 This model simply extracts the layers from the RestNet50 image classification model and Word2Vec text classification model except the final prediction layer, concatenates the output of the last hidden layer of both models and finally train a prediction layer for the classification task.
 
-[<img src="./readme_images/tf_image_text_model_RestNet50_Word2Vec.png" width="500"/>](readme_images/tf_image_text_model_RestNet50_Word2Vec.png)
+[<img src="./readme_images/tf_image_text_model_RestNet50_Word2Vec.png" width="1024"/>](readme_images/tf_image_text_model_RestNet50_Word2Vec.png)
 
 The left side of the graph is the image processing layers while the right side is the text processing layers, which are both following the same architecture as the previous models. 
 
@@ -472,7 +470,7 @@ The mode summary is as follows:
 
 Again, this model simply extracts the layers from the EfficientNet image classification model and BERT text classification model except the final prediction layer, concatenates the output of the last hidden layer of both models and finally train a prediction layer for the classification task.
 
-[<img src="./readme_images/tf_image_text_model_EfficientNetB3_BERT.png" width="500"/>](readme_images/tf_image_text_model_EfficientNetB3_BERT.png)
+[<img src="./readme_images/tf_image_text_model_EfficientNetB3_BERT.png" width="1024"/>](readme_images/tf_image_text_model_EfficientNetB3_BERT.png)
 
 The left side of the graph is the image processing layers while the right side is the text processing layers, which are both following the same architecture as the previous models. 
 
@@ -572,19 +570,20 @@ Here is the result for this model:
 
 **RestNet50 + Word2Vec**
 
-![Combine_Restnet50_Word2Vec Model Accuracy](readme_images/tf_restnet50_Word2vec_metrics.png)
+[<img src="./readme_images/tf_restnet50_Word2vec_metrics.png" width="300"/>](readme_images/tf_restnet50_Word2vec_metrics.png)
 
 https://tensorboard.dev/experiment/ZPBNU6LXSdOZabP1FlXnpQ/
 
 **EfficientNet + BERT**
 
-![Combine_EfficientNet_BERT Model Accuracy](readme_images/tf_efficientNet_BERT_metrics.png)
+[<img src="./readme_images/tf_efficientNet_BERT_metrics.png" width="300"/>](readme_images/tf_efficientNet_BERT_metrics.png)
 
 https://tensorboard.dev/experiment/Om2Sb2goSN2CAZJwoUDFRA/
 
 
 
 ## TODO:
+- Show better model's structure plots
 - Create API for prediction.
 
 ## Reference
