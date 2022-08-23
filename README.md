@@ -26,7 +26,7 @@ To run the program, simply call:
 python main.py
 ```
 
-This will run Tensorflow 
+This will run Tensorflow version of all models described below.
 
 Or you can check the result from the [notebook](fb_marketplace_recommendation.ipynb) in this repo. 
 
@@ -102,6 +102,10 @@ The image based model is unfreeze and the whole model is trained for another 8 e
 
 The model summary is as follows:
 
+**RestNet50**
+
+[<img src="./readme_images/image_model.png" width="500"/>](readme_images/tf_image_model_RestNet50.png)
+
     Model: "tf_image_model_RestNet50"
     ____________________________________________________________________________
      Layer (type)                Output Shape              Param #   Trainable  
@@ -146,6 +150,11 @@ The model summary is as follows:
     Non-trainable params: 90,880
     ______________________________
 
+
+**EfficientNetB3**
+
+[<img src="./readme_images/image_model.png" width="500"/>](readme_images/tf_image_model_EfficientNetB3.png)
+
     Model: "tf_image_model_EfficientNetB3"
     ____________________________________________________________________________
      Layer (type)                Output Shape              Param #   Trainable  
@@ -183,7 +192,6 @@ The model summary is as follows:
     Trainable params: 14,551,819
     Non-trainable params: 218,432
 
-[<img src="./readme_images/image_model.png" width="250"/>](image_model.png)
 
 The same training, validation and testing datasets are used as the machine learning model.     
 
@@ -203,9 +211,18 @@ The same command is used for uploading logs in the Tensorboard for other models
 Then we can navigate to link showing on the screen and see the plots of your result.
 
 Here is the result for this model:
-https://tensorboard.dev/experiment/Ze8GNeW5T2yhepr8YKgnWA/#scalars&runSelectionState=eyIuIjp0cnVlfQ%3D%3D
 
-![CNN Model Accuracy](readme_images/image_accuracy.png)
+RestNet50: 
+
+![Restnet50 model result](readme_images/tf_restnet50_metrics.png)
+
+https://tensorboard.dev/experiment/HwNtV7ojTdmgOP4hjC0gxQ/
+
+EfficientNet: 
+
+![EfficientNet model result](readme_images/tf_efficientnet_metrics.png)
+
+https://tensorboard.dev/experiment/Yq24bbyPQNaKcQb4dVBYvA/
 
 ## Milestone 4
 
@@ -226,7 +243,9 @@ It consists convolution layers, average pooling layers, a flatten layer, dropout
 - Linear layer reduce the number of hidden layers with activation function ReLU to non-linearly transform the value in each hidden layers, which will be the embedding for our combined model.
 - Final prediction layer, which is also a linear layer without any activation function, gives us the tensor with the same size of number of categories, then we can use softmax to calculate the probability for each class and find out the predicted category.
 
-The model summary is as follows: 
+[<img src="./readme_images/tf_text_model_Word2Vec.png" width="500"/>](readme_images/tf_text_model_Word2Vec.png)
+
+The model summary is as follows:
 
     Model: "sequential"
     _________________________________________________________________
@@ -261,7 +280,6 @@ The model summary is as follows:
     Trainable params: 2,280,597
     Non-trainable params: 8,397,600
 
-![Text model graph](readme_images/text_model.png)
 
 ### Training and fine-tuning
 
@@ -273,13 +291,13 @@ The Word2Vec embedding layer is freezed in the first 20 epochs, this allows us t
 
 The Word2Vec embedding layer is unfreeze and the whole model is trained for another 15 epochs with lower learning rate 0.0005 and 5 rounds early stopping. But unlike to image model, we don't restore the weight when early stopping is trigger. The reason is from the experiment, the validation accuracy kept increasing even the validation loss was increasing in last few epochs. This may happen there are some outliner records that the model can't recognise, but the model actually improve on other normal records.  
 
-We use the same training, validation and testing dataset as the machine model. The overall accuracy is about <>%, again, much better than machine learning classification model.
+We use the same training, validation and testing dataset as the machine model. The overall accuracy is about 73%, again, much better than machine learning classification model.
 
 Here is the result for this model:
 
+![Word2Vec Model result](readme_images/tf_word2vec_metrics.png)
 
-![CNN Model Accuracy](readme_images/text_accuracy.png)
-
+https://tensorboard.dev/experiment/LdNgKC7CQBKhdWgLa1WhYA/
 
 ### BERT
 Apart from Word2Vec, we can also use transformer based word embedding model to encode the text, which is proved to be a better model to capture features from text in many situations. Again, as there are lots of pre-trained models available, we can do transfer learning again to build our model. The pre-trained model we choose is BERT based cased model. The pre-trained model comes with the tokenizer which can convert the text into token indices and attention mask.
@@ -291,6 +309,8 @@ Our model consists of an embedding layer, a linear layer with ReLU activation fu
 - Dropout layer avoids the model to be overfitted by randomly drop out the weight of some hidden layers.
 - Linear layer reduce the number of hidden layers with activation function ReLU to non-linearly transform the value in each hidden layers, which will be the embedding for our combined model.
 - Final prediction layer, which is also a linear layer without any activation function, gives us the tensor with the same size of number of categories, then we can use softmax to calculate the probability for each class and find out the predicted category.
+
+[<img src="./readme_images/tf_text_model_BERT.png" width="500"/>](readme_images/tf_text_model_BERT.png)
 
 The model summary is as follows: 
 
@@ -342,9 +362,7 @@ The model summary is as follows:
     Trainable params: 108,510,477
     Non-trainable params: 1
 
-
-TODO: model architecture
-![Text model graph](readme_images/.png)
+[<img src="./readme_images/tf_text_model_BERT.png" width="500"/>](readme_images/tf_text_model_BERT.png)
 
 ### Training and fine-tuning
 
@@ -353,35 +371,217 @@ TODO: model architecture
 Since we don't have many layers to train except from the embedding model. We perform fine-tuning only for this model. 
 The BERT embedding layer is unfreeze and the whole model is trained for 5 epochs with a very low learning rate 0.00002 and 2 rounds early stopping.
 
-We use the same training, validation and testing dataset as the machine model. The overall accuracy is about <>%, again, much better than machine learning classification model.
+The model stopped training after 4 epochs, since the validation loss hadn't improved for 2 epochs.   
+
+We use the same training, validation and testing dataset as the machine model. The overall accuracy is about 79%, again, much better than machine learning classification model.
 
 Here is the result for this model:
 
-TODO: model result
-![CNN Model Accuracy](readme_images/<>.png)
+![CNN Model Accuracy](readme_images/tf_BERT_metrics.png)
+
+https://tensorboard.dev/experiment/W1fq94q0ROynXpbCmxK46Q/
  
 
 ## Milestone 5 
 
 In previous milestones, we demonstrate how to input image and text into the models to perform classification. In fact, we can combine them into a single model.
 
-TODO: combine model summary
+**RestNet50 + Word2Vec**
+
+This model simply extracts the layers from the RestNet50 image classification model and Word2Vec text classification model except the final prediction layer, concatenates the output of the last hidden layer of both models and finally train a prediction layer for the classification task.
+
+[<img src="./readme_images/tf_image_text_model_RestNet50_Word2Vec.png" width="500"/>](readme_images/tf_image_text_model_RestNet50_Word2Vec.png)
+
+The left side of the graph is the image processing layers while the right side is the text processing layers, which are both following the same architecture as the previous models. 
 
 The mode summary is as follows:
 
-    TODO: combine model summary
+    Model: "tf_image_text_model_RestNet50_Word2Vec"
+    _____________________________________________________________________________________________________________
+     Layer (type)                   Output Shape         Param #     Connected to                     Trainable  
+    =============================================================================================================
+     input_3 (InputLayer)           [(None, 300, 300, 3  0           []                               Y          
+                                    )]                                                                           
+                                                                                                                 
+     img_augmentation (Sequential)  (None, 300, 300, 3)  0           ['input_3[0][0]']                Y          
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | random_flip_1 (RandomFlip)   (None, 300, 300, 3)  0           []                               Y          |
+    |                                                                                                           |
+    | random_rotation_1 (RandomRotat  (None, 300, 300, 3)  0        []                               Y          |
+    | ion)                                                                                                      |
+    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+     tf.math.truediv_1 (TFOpLambda)  (None, 300, 300, 3)  0          ['img_augmentation[0][0]']       Y          
+                                                                                                                 
+     input (InputLayer)             [(None, 1458)]       0           []                               Y          
+                                                                                                                 
+     tf.math.subtract_1 (TFOpLambda  (None, 300, 300, 3)  0          ['tf.math.truediv_1[0][0]']      Y          
+     )                                                                                                           
+                                                                                                                 
+     text_seq_layers (Sequential)   (None, 256)          10674856    ['input[0][0]']                  N          
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | embedding (Embedding)        (None, 1458, 300)    8397600     []                               N          |
+    |                                                                                                           |
+    | text_conv_1 (Conv1D)         (None, 1456, 48)     43248       []                               N          |
+    |                                                                                                           |
+    | text_avg_pool_1 (AveragePoolin  (None, 728, 48)   0           []                               N          |
+    | g1D)                                                                                                      |
+    |                                                                                                           |
+    | text_dropout_conv_1 (Dropout)  (None, 728, 48)    0           []                               N          |
+    |                                                                                                           |
+    | text_conv_2 (Conv1D)         (None, 726, 24)      3480        []                               N          |
+    |                                                                                                           |
+    | text_avg_pool_2 (AveragePoolin  (None, 363, 24)   0           []                               N          |
+    | g1D)                                                                                                      |
+    |                                                                                                           |
+    | text_flatten (Flatten)       (None, 8712)         0           []                               N          |
+    |                                                                                                           |
+    | text_dropout_conv_2 (Dropout)  (None, 8712)       0           []                               N          |
+    |                                                                                                           |
+    | text_dense_1 (Dense)         (None, 256)          2230528     []                               N          |
+    |                                                                                                           |
+    | text_dropout_pred_1 (Dropout)  (None, 256)        0           []                               N          |
+    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+     image_sequential (Sequential)  (None, 256)          25925376    ['tf.math.subtract_1[0][0]']     N          
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | resnet50v2 (Functional)      (None, 10, 10, 2048  23564800    []                               N          |
+    |                              )                                                                            |
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | pooling (GlobalAveragePooling2  (None, 2048)      0           []                               N          |
+    | D)                                                                                                        |
+    |                                                                                                           |
+    | dropout_0 (Dropout)          (None, 2048)         0           []                               N          |
+    |                                                                                                           |
+    | dense_0 (Dense)              (None, 1024)         2098176     []                               N          |
+    |                                                                                                           |
+    | dense_1 (Dense)              (None, 256)          262400      []                               N          |
+    |                                                                                                           |
+    | dropout_1 (Dropout)          (None, 256)          0           []                               N          |
+    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+     tf.concat (TFOpLambda)         (None, 512)          0           ['text_seq_layers[0][0]',        Y          
+                                                                      'image_sequential[0][0]']                  
+                                                                                                                 
+     prediction (Dense)             (None, 13)           6669        ['tf.concat[0][0]']              Y          
+                                                                                                                 
+    =============================================================================================================
+    Total params: 36,606,901
+    Trainable params: 6,669
+    Non-trainable params: 36,600,232
+    _____________________________________________________________________________________________________________
 
-TODO: combine model graph
-![Combine model graph](readme_images/<>.png)
+**EfficientNet + BERT**
 
-We use the same training, validation and testing dataset as the machine model. The overall accuracy is about <>, again, much better than machine learning classification model.
+Again, this model simply extracts the layers from the EfficientNet image classification model and BERT text classification model except the final prediction layer, concatenates the output of the last hidden layer of both models and finally train a prediction layer for the classification task.
+
+[<img src="./readme_images/tf_image_text_model_EfficientNetB3_BERT.png" width="500"/>](readme_images/tf_image_text_model_EfficientNetB3_BERT.png)
+
+The left side of the graph is the image processing layers while the right side is the text processing layers, which are both following the same architecture as the previous models. 
+
+The mode summary is as follows:
+
+    Model: "tf_image_text_model_EfficientNetB3_BERT"
+    _____________________________________________________________________________________________________________
+     Layer (type)                   Output Shape         Param #     Connected to                     Trainable  
+    =============================================================================================================
+     input_3 (InputLayer)           [(None, 300, 300, 3  0           []                               Y          
+                                    )]                                                                           
+                                                                                                                 
+     input (InputLayer)             [(None,)]            0           []                               Y          
+                                                                                                                 
+     img_augmentation (Sequential)  (None, 300, 300, 3)  0           ['input_3[0][0]']                Y          
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | random_flip_1 (RandomFlip)   (None, 300, 300, 3)  0           []                               Y          |
+    |                                                                                                           |
+    | random_rotation_1 (RandomRotat  (None, 300, 300, 3)  0        []                               Y          |
+    | ion)                                                                                                      |
+    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+     text_seq_layer_transformer (Fu  (None, 256)         108507137   ['input[0][0]']                  N          
+     nctional)                                                                                                   
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | input (InputLayer)           [(None,)]            0           []                               N          |
+    |                                                                                                           |
+    | keras_layer (KerasLayer)     {'input_mask': (Non  0           []                               N          |
+    |                              e, 128),                                                                     |
+    |                               'input_word_ids':                                                           |
+    |                              (None, 128),                                                                 |
+    |                               'input_type_ids':                                                           |
+    |                              (None, 128)}                                                                 |
+    |                                                                                                           |
+    | keras_layer_1 (KerasLayer)   {'sequence_output':  108310273   []                               N          |
+    |                               (None, 128, 768),                                                           |
+    |                               'default': (None,                                                           |
+    |                              768),                                                                        |
+    |                               'encoder_outputs':                                                          |
+    |                               [(None, 128, 768),                                                          |
+    |                               (None, 128, 768),                                                           |
+    |                               (None, 128, 768),                                                           |
+    |                               (None, 128, 768),                                                           |
+    |                               (None, 128, 768),                                                           |
+    |                               (None, 128, 768),                                                           |
+    |                               (None, 128, 768),                                                           |
+    |                               (None, 128, 768),                                                           |
+    |                               (None, 128, 768),                                                           |
+    |                               (None, 128, 768),                                                           |
+    |                               (None, 128, 768),                                                           |
+    |                               (None, 128, 768)],                                                          |
+    |                               'pooled_output': (                                                          |
+    |                              None, 768)}                                                                  |
+    |                                                                                                           |
+    | dropout (Dropout)            (None, 768)          0           []                               N          |
+    |                                                                                                           |
+    | dense_1 (Dense)              (None, 256)          196864      []                               N          |
+    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+     image_sequential (Sequential)  (None, 256)          14766910    ['img_augmentation[0][0]']       N          
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | efficientnetv2-b3 (Functional)  (None, 10, 10, 1536  12930622  []                              N          |
+    |                              )                                                                            |
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | pooling (GlobalAveragePooling2  (None, 1536)      0           []                               N          |
+    | D)                                                                                                        |
+    |                                                                                                           |
+    | dropout_0 (Dropout)          (None, 1536)         0           []                               N          |
+    |                                                                                                           |
+    | dense_0 (Dense)              (None, 1024)         1573888     []                               N          |
+    |                                                                                                           |
+    | dense_1 (Dense)              (None, 256)          262400      []                               N          |
+    |                                                                                                           |
+    | dropout_1 (Dropout)          (None, 256)          0           []                               N          |
+    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+     tf.concat (TFOpLambda)         (None, 512)          0           ['text_seq_layer_transformer[0]  Y          
+                                                                     [0]',                                       
+                                                                      'image_sequential[0][0]']                  
+                                                                                                                 
+     prediction (Dense)             (None, 13)           6669        ['tf.concat[0][0]']              Y          
+                                                                                                                 
+    =============================================================================================================
+    Total params: 123,280,716
+    Trainable params: 6,669
+    Non-trainable params: 123,274,047
+    _____________________________________________________________________________________________________________
+
+
+### Training and fine-tuning
+
+**Training**
+
+Due to limited resource available, we are not able to fine-tune the layers we have trained previously but use the weights directly. 
+As we literally only train 1 layer only, we train the model for 3 epochs with learning rate 0.001.  
+
+We use the same training, validation and testing dataset as the machine model. The overall accuracy is about 77%. It is better than having the result from each model (59% for RestNet50 and 73% from Word2Vec)
 
 Here is the result for this model:
 
-TODO: combine model result
-<>
+**RestNet50 + Word2Vec**
 
-![CNN Model Accuracy](readme_images/<>.png)
+![Combine_Restnet50_Word2Vec Model Accuracy](readme_images/tf_restnet50_Word2vec_metrics.png)
+
+https://tensorboard.dev/experiment/ZPBNU6LXSdOZabP1FlXnpQ/
+
+**EfficientNet + BERT**
+
+![Combine_EfficientNet_BERT Model Accuracy](readme_images/tf_efficientNet_BERT_metrics.png)
+
+https://tensorboard.dev/experiment/Om2Sb2goSN2CAZJwoUDFRA/
+
 
 
 ## TODO:

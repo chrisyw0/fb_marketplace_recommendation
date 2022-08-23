@@ -3,7 +3,7 @@ tensorboard dev upload --logdir ./logs/tf_image_model_RestNet50 \
   --description "Image classification - RestNet50" \
   --one_shot
 
-tensorboard dev upload --logdir ./logs/tf_image_model_EfficientNet \
+tensorboard dev upload --logdir ./logs/tf_image_model_EfficientNetB3 \
   --name "Fine-tune EfficientNet" \
   --description "Image classification - EfficientNet" \
   --one_shot
