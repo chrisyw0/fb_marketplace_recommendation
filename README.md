@@ -628,3 +628,11 @@ Among the categories, we got pretty good F1 scores for every category except "Ot
 ## Reference
 
 Deep Residual Learning for Image Recognition (CVPR 2015) (https://arxiv.org/abs/1512.03385)
+
+EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks (ICML 2019) (https://arxiv.org/abs/1905.11946))
+
+Efficient Estimation of Word Representations in Vector Space (https://arxiv.org/pdf/1301.3781.pdf)
+
+Distributed Representations of Words and Phrases and their Compositionality (https://arxiv.org/abs/1310.4546)
+
+BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding (https://arxiv.org/abs/1810.04805)
