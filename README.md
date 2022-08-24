@@ -583,7 +583,6 @@ https://tensorboard.dev/experiment/Om2Sb2goSN2CAZJwoUDFRA/
 
 
 ## TODO:
-- Show better model's structure plots
 - Create API for prediction.
 
 ## Reference
