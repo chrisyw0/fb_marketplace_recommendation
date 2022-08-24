@@ -46,7 +46,7 @@ The second step is to perform feature engineering and data cleaning. It includes
 
 After feature engineering and data cleaning, the product dataset contains 6,902 rows and 23 columns and the image dataset contains 11,128 rows and 10 columns. 
 
-To have some insights into the dataset, I create some plots showing the distribution of the data such as price distribution, product location ..., more details can be found in the comment of the corresponding class. 
+To have some insights into the dataset, some plots are created for showing the distribution of the data such as price distribution, product location ..., more details can be found in the comment of the corresponding class.
 
 ## Milestone 2
 
@@ -564,7 +564,7 @@ The mode summary is as follows:
 Due to limited resource available, we are not able to fine-tune the layers we have trained previously but use the weights directly. 
 As we literally only train 1 layer only, we train the model for 3 epochs with learning rate 0.001.  
 
-We use the same training, validation and testing dataset as the machine model. The overall accuracy is about 77%. It is better than having the result from each model (59% for RestNet50 and 73% from Word2Vec)
+We use the same training, validation and testing dataset as the machine model. 
 
 Here is the result for this model:
 
@@ -574,13 +574,53 @@ Here is the result for this model:
 
 https://tensorboard.dev/experiment/ZPBNU6LXSdOZabP1FlXnpQ/
 
+
 **EfficientNet + BERT**
 
 [<img src="./readme_images/tf_efficientNet_BERT_metrics.png" width="512"/>](readme_images/tf_efficientNet_BERT_metrics.png)
 
 https://tensorboard.dev/experiment/Om2Sb2goSN2CAZJwoUDFRA/
 
+For the combine model consists of RestNet50 and Word2Vec, the overall accuracy is about **77%**. It is better than having the result from each model (**59%** for RestNet50 and **73%** from Word2Vec)
 
+For the model consists of EfficientNet and BERT, we got even better result with accuracy is about **81%**. It is better than having the result from each model (**65%** for EfficientNet and **79%** from BERT)
+
+## Result Analysis and Summarization
+
+From the above experiments, it shows EfficientNet and BERT are better based models for image and text embedding than RestNet50 and Word2Vec.
+
+With our best model, we can classify over 80% the products' category from its product name, description and images, which is a pretty good result given we have 13 classes and a relative small dataset thanks to the power of transfer learning.       
+
+Among the categories, we got pretty good F1 scores for every category except "Other Goods". This makes sense as it contains very different description and images which is not easy to find the common characteristics. Here is the classification report from sklearn for our best model.    
+
+                                        precision    recall  f1-score   support
+    
+                          Appliances       0.72      0.86      0.79        79
+                   Baby & Kids Stuff       0.76      0.74      0.75        68
+     Clothes, Footwear & Accessories       0.79      0.82      0.81        68
+                Computers & Software       0.89      0.90      0.89        89
+               DIY Tools & Materials       0.82      0.82      0.82        88
+                     Health & Beauty       0.92      0.78      0.85        88
+                       Home & Garden       0.77      0.74      0.76       120
+         Music, Films, Books & Games       0.96      0.92      0.94        98
+        Office Furniture & Equipment       0.85      0.87      0.86        94
+                         Other Goods       0.43      0.44      0.43        73
+    Phones, Mobile Phones & Telecoms       0.92      0.95      0.94        64
+            Sports, Leisure & Travel       0.71      0.69      0.70        58
+              Video Games & Consoles       0.94      0.94      0.94        70
+    
+                            accuracy                           0.81      1057
+                           macro avg       0.81      0.81      0.81      1057
+                        weighted avg       0.81      0.81      0.81      1057
+
+
+## Resource and Tools
+### Cloud Computing
+- [Google Colab](https://colab.research.google.com/) 
+- [Paperspace](https://www.paperspace.com/)
+
+### Result Dashboard
+- [Tensorboard](https://tensorboard.dev/)
 
 ## TODO:
 - Create API for prediction.
