@@ -1,8 +1,0 @@
-README.md
-pyproject.toml
-setup.py
-fbmarketplace_model.egg-info/PKG-INFO
-fbmarketplace_model.egg-info/SOURCES.txt
-fbmarketplace_model.egg-info/dependency_links.txt
-fbmarketplace_model.egg-info/requires.txt
-fbmarketplace_model.egg-info/top_level.txt
