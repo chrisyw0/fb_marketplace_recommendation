@@ -16,7 +16,7 @@ from fbRecommendation.dl.pytorch.pt_base_classifier import (
     prepare_optimizer_and_scheduler
 )
 from fbRecommendation.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
-from fbRecommendation.dataPreparation.prepare_dataset import DatasetHelper
+from fbRecommendation.dataset.prepare_dataset import DatasetHelper
 
 
 class PTTextModel(nn.Module):

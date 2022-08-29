@@ -19,7 +19,7 @@ from .pt_base_classifier import (
 )
 
 from fbRecommendation.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
-from fbRecommendation.dataPreparation.prepare_dataset import DatasetHelper
+from fbRecommendation.dataset.prepare_dataset import DatasetHelper
 
 
 class PTImageTextModel(nn.Module):

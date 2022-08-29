@@ -6,7 +6,7 @@ from typing import Tuple, List, Any, Optional
 from dataclasses import field
 from sklearn.metrics import classification_report
 
-from fbRecommendation.dataPreparation.prepare_dataset import DatasetHelper
+from fbRecommendation.dataset.prepare_dataset import DatasetHelper
 from fbRecommendation.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
 from fbRecommendation.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
 from fbRecommendation.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator

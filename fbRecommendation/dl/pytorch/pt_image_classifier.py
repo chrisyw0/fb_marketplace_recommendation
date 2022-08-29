@@ -7,7 +7,7 @@ from dataclasses import field
 from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 
-from fbRecommendation.dataPreparation.prepare_dataset import DatasetHelper
+from fbRecommendation.dataset.prepare_dataset import DatasetHelper
 from .pt_base_classifier import (
     PTBaseClassifier,
     train_and_validate_model,

@@ -7,7 +7,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import mean_squared_error, classification_report
 from typing import Tuple
 
-from ..dataPreparation.prepare_dataset import DatasetHelper
+from fbRecommendation.dataset.prepare_dataset import DatasetHelper
 
 
 class MachineLearningPredictor:

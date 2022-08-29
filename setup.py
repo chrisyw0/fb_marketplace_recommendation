@@ -4,9 +4,10 @@ setup(
     name='fbmarketplace_model',
     version='0.0.1',
     python_requires=">=3.8",
+    package_dir={"": "fbRecommendation"},
     packages=find_packages(
-        where='fbRecommendation',
-        include=['dl*'],
+        where='./fbRecommendation',
+        include=['dl.*', 'dataset'],
         exclude=['dl.pytorch*'],
     ),
     install_requires=[
