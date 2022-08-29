@@ -6,8 +6,8 @@ setup(
     python_requires=">=3.8",
     packages=find_packages(
         where='fbRecommendation',
-        include=['fbRecommendation.dl*'],
-        exclude=['fbRecommendation.dl.pytorch'],
+        include=['dl*'],
+        exclude=['dl.pytorch*'],
     ),
     install_requires=[
         "numpy",
