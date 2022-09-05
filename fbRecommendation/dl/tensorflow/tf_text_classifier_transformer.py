@@ -107,12 +107,12 @@ class TFTextTransformerClassifier(TFBaseClassifier):
 
         # This let tensorflow dataset know what is shape of dataset look like. We should output exactly the data same
         # shape in data generator to avoid any exception.
-        out_sign = (
+        self.out_sign = (
             tf.TensorSpec(shape=(None,), dtype=tf.string),
             tf.TensorSpec(shape=(None, self.num_class), dtype=tf.float32)
         )
 
-        self.ds_train = gen.get_dataset(out_sign)
+        self.ds_train = gen.get_dataset(self.out_sign)
 
         gen = TFDatasetGenerator(
             images=None,
@@ -125,7 +125,7 @@ class TFTextTransformerClassifier(TFBaseClassifier):
             labels=y_val
         )
 
-        self.ds_val = gen.get_dataset(out_sign)
+        self.ds_val = gen.get_dataset(self.out_sign)
 
         gen = TFDatasetGenerator(
             images=None,
@@ -138,7 +138,7 @@ class TFTextTransformerClassifier(TFBaseClassifier):
             shuffle=False
         )
 
-        self.ds_test = gen.get_dataset(out_sign)
+        self.ds_test = gen.get_dataset(self.out_sign)
 
         return df_train, df_val, df_test
 

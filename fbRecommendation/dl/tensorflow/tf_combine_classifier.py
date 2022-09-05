@@ -182,7 +182,7 @@ class TFImageTextClassifier(TFBaseClassifier):
 
         # This let tensorflow dataset know what is shape of dataset look like. We should output exactly the data same
         # shape in data generator to avoid any exception.
-        out_sign = (
+        self.out_sign = (
             {
                 "token": token_tensor_spec,
                 "image": tf.TensorSpec(shape=(None, self.image_shape[0], self.image_shape[1], self.image_shape[2]),
@@ -191,7 +191,7 @@ class TFImageTextClassifier(TFBaseClassifier):
             tf.TensorSpec(shape=(None, self.num_class), dtype=tf.float32)
         )
 
-        self.ds_train = gen.get_dataset(out_sign)
+        self.ds_train = gen.get_dataset(self.out_sign)
 
         gen = TFDatasetGenerator(
             images=image_val,
@@ -206,7 +206,7 @@ class TFImageTextClassifier(TFBaseClassifier):
             pad_text_seq= not self.is_transformer_based_text_model
         )
 
-        self.ds_val = gen.get_dataset(out_sign)
+        self.ds_val = gen.get_dataset(self.out_sign)
 
         gen = TFDatasetGenerator(
             images=image_test,
@@ -221,7 +221,7 @@ class TFImageTextClassifier(TFBaseClassifier):
             pad_text_seq= not self.is_transformer_based_text_model
         )
 
-        self.ds_test = gen.get_dataset(out_sign)
+        self.ds_test = gen.get_dataset(self.out_sign)
 
         return df_train, df_val, df_test
 
