@@ -16,7 +16,7 @@ setup(
         "tqdm",
         "pillow",
         "scikit-learn",
-        "tensorflow",
+        "tensorflow<=2.9",
         "tensorflow-text",
         "tensorflow_addons",
         "tf-models-official",
