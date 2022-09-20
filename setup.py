@@ -12,6 +12,7 @@ setup(
     install_requires=[
         "tensorflow>=2.8",
         "tensorflow_hub",
+        "tensorflow-text",
         "gensim"
     ],
 )
