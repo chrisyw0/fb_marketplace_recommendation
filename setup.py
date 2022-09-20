@@ -6,7 +6,7 @@ setup(
     python_requires=">=3.8",
     packages=find_packages(
         where='./',
-        include=['fbRecommendation.dl.base.model.*', 'fbRecommendation.dl.tensorflow.model.*'],
+        include=['fbRecommendation.dl.base.model*', 'fbRecommendation.dl.tensorflow.model*'],
         exclude=[],
     ),
     install_requires=[
