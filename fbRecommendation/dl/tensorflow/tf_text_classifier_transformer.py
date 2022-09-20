@@ -7,6 +7,7 @@ from dataclasses import field
 from sklearn.metrics import classification_report
 
 from fbRecommendation.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
+from fbRecommendation.dl.tensorflow.model.tf_model import TFTextTransformerModel
 from fbRecommendation.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
 from fbRecommendation.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
 from fbRecommendation.dataset.prepare_dataset import DatasetHelper
@@ -24,7 +25,7 @@ class TFTextTransformerClassifier(TFBaseClassifier):
 
         embedding_dim (int, Optional): The vector size of embedding model. Defaults to 768.
         embedding_pretrain_model (str, Optional): Whether to use a pretrain model to encode the text. Please check
-                                                  tf_text_processing_constant.py for available options.
+                                                  tfhub_text_model_constant.py for available options.
                                                   Defaults to "bert_en_cased_L-12_H-768_A-12".
         batch_size (int, optional): Batch size of the model. Defaults to 16.
         dropout_pred (float, optional): Dropout rate of the layer before the prediction layer of the model.
@@ -172,32 +173,17 @@ class TFTextTransformerClassifier(TFBaseClassifier):
             self.learning_rate
         )
 
-        self.embedding_model, embedding_preprocess = TFImageTextUtil.prepare_embedding_model(
-            embedding=self.embedding,
-            embedding_dim=self.embedding_dim,
-            pretrain_model=self.embedding_pretrain_model,
-            trainable=False
-        )
+        kwargs = {
+            "num_class": self.num_class,
+            "model_name": self.model_name,
+            "embedding": self.embedding,
+            "embedding_dim": self.embedding_dim,
+            "embedding_pretrain_model": self.embedding_pretrain_model,
+            "dropout_pred": self.dropout_pred
+        }
 
-        TFImageTextUtil.set_base_model_trainable(self.embedding_model, 1)
+        self.model, self.text_seq_layer, self.embedding_model = TFTextTransformerModel.get_model(**kwargs)
 
-        inputs = tf.keras.layers.Input(shape=(), dtype=tf.string, name="input")
-
-        text_dense_layer_1 = tf.keras.layers.Dense(256, activation='relu', name="dense_1")
-        text_dropout_layer_1 = tf.keras.layers.Dropout(self.dropout_pred, name="dropout")
-        prediction_layer = tf.keras.layers.Dense(self.num_class, name="prediction")
-
-        x = embedding_preprocess(inputs)
-        x = self.embedding_model(x, training=False)["pooled_output"]
-        x = text_dropout_layer_1(x)
-        text_model_output = text_dense_layer_1(x)
-
-        self.text_seq_layer = tf.keras.Model(inputs, text_model_output, name="text_seq_layer_transformer")
-
-        x = self.text_seq_layer(inputs)
-        outputs = prediction_layer(x)
-
-        self.model = tf.keras.Model(inputs, outputs, name=self.model_name)
         self.model.compile(optimizer=optimizer,
                            loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
                            metrics=['accuracy'])

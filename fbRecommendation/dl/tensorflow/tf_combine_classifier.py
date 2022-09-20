@@ -9,6 +9,7 @@ from sklearn.metrics import classification_report
 from fbRecommendation.dataset.prepare_dataset import DatasetHelper
 from fbRecommendation.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
 from fbRecommendation.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
+from fbRecommendation.dl.tensorflow.model.tf_model import TFCombineModel
 from fbRecommendation.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
 
 
@@ -246,44 +247,18 @@ class TFImageTextClassifier(TFBaseClassifier):
         self.image_seq_layers.trainable = False
         self.text_seq_layers.trainable = False
 
-        img_augmentation = tf.keras.models.Sequential(
-            [
-                tf.keras.layers.RandomFlip('horizontal'),
-                tf.keras.layers.RandomRotation(0.2)
-            ],
-            name="img_augmentation"
-        )
+        kwargs = {
+            "model_name": self.model_name,
+            "num_class": self.num_class,
+            "is_transformer_based_text_model": self.is_transformer_based_text_model,
+            "num_max_tokens": self.num_max_tokens,
+            "image_shape": self.image_shape,
+            "text_seq_layers": self.text_seq_layers,
+            "image_seq_layers": self.image_seq_layers,
+            "image_base_model": self.image_base_model
+        }
 
-        prediction = tf.keras.layers.Dense(self.num_class, name="prediction")
-
-        if self.is_transformer_based_text_model:
-            text_inputs = tf.keras.layers.Input(shape=(), dtype=tf.string, name="input")
-        else:
-            text_inputs = tf.keras.layers.Input(shape=(self.num_max_tokens,), dtype=tf.int32, name="input")
-
-        image_inputs = tf.keras.layers.Input(shape=self.image_shape, dtype=tf.float32)
-
-        x_text = self.text_seq_layers(text_inputs)
-        x_img = img_augmentation(image_inputs)
-
-        if self.image_base_model == "RestNet50":
-            preprocess_input = tf.keras.applications.resnet_v2.preprocess_input
-            x_img = preprocess_input(x_img)
-        elif self.image_base_model.startswith("EfficientNet"):
-            preprocess_input = tf.keras.applications.efficientnet_v2.preprocess_input
-            x_img = preprocess_input(x_img)
-
-        x_img = self.image_seq_layers(x_img)
-        x = tf.concat([x_text, x_img], 1)
-
-        outputs = prediction(x)
-        self.model = tf.keras.Model(
-            {
-                "token": text_inputs,
-                "image": image_inputs
-            },
-            outputs, name=self.model_name
-        )
+        self.model = TFCombineModel.get_model(**kwargs)
 
         optimizer = get_optimizer(
             self.ds_train,

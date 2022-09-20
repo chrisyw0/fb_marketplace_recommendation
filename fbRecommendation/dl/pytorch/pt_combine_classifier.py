@@ -4,9 +4,8 @@ import torch
 import torch.nn as nn
 import copy
 
-from typing import Tuple, List, Any, Optional, Union, Dict
+from typing import Tuple, List, Any, Optional
 from dataclasses import field
-from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 
 from fbRecommendation.dl.pytorch.utils.pt_image_text_util import PTImageTextUtil
@@ -18,76 +17,10 @@ from .pt_base_classifier import (
     prepare_optimizer_and_scheduler
 )
 
+from fbRecommendation.dl.pytorch.model.pt_model_util import PTModelUtil
+from fbRecommendation.dl.pytorch.model.pt_model import PTImageTextModel
 from fbRecommendation.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
 from fbRecommendation.dataset.prepare_dataset import DatasetHelper
-
-
-class PTImageTextModel(nn.Module):
-    """
-    This is the combine model in nn.Module format containing image layers (transformation  + based model +
-    image sequential layers), text layers (embedding + text sequential layers) and finally a prediction layer.
-    The image and text layers have been trained previously with the same data in text and image only model. The model
-    can benefit from both pre-trained layers and hopefully give better performance than having single image or text
-    only model.
-
-    The model override the forward method of the nn.Module which gives instructions how to process the input data
-    and give prediction from it.
-
-    Similar to image only model, it accepts image input format in torch.Tensor, which should be a 4d tensor
-    [batch_size, channel, height, width]
-
-    This model handles both transformer based and non-transformer based text embedding layer. Please note that for
-    non-transformer based embedding layer, it accepts input format in torch.Tensor [batch_size, max_token_number]
-    while for transformer based model, it accepts the format in dictionary format, containing token id, attention mask
-    and some other values required from model input, which can be encoded by PTImageTextUtil.batch_encode_text
-    """
-    def __init__(
-            self,
-            num_class: int,
-            image_base_model: nn.Module,
-            image_seq_layers: nn.Module,
-            text_embedding_layer: nn.Module,
-            text_seq_layers: nn.Module,
-            is_transformer_based_text_model: bool
-    ):
-        super(PTImageTextModel, self).__init__()
-        self.transforms = nn.Sequential(
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(72),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        )
-
-        self.image_seq_layers = image_seq_layers
-        self.image_base_model = image_base_model
-
-        self.text_embedding_layer = text_embedding_layer
-        self.text_seq_layers = text_seq_layers
-
-        self.is_transformer_based_text_model = is_transformer_based_text_model
-
-        self.prediction_layer = nn.Linear(512, num_class)
-
-    def forward(self, image: torch.Tensor, text: Union[torch.Tensor, Dict[str, torch.Tensor]]):
-        x_img = self.transforms(image)
-        x_img = self.image_base_model(x_img)
-        x_img = x_img.squeeze()
-        if x_img.dim() == 1:
-            # if only one data in a batch, it add back the dimension
-            x_img = x_img.unsqueeze(0)
-        x_img = self.image_seq_layers(x_img)
-
-        if self.is_transformer_based_text_model:
-            x_text = self.text_embedding_layer(**text)["pooler_output"]
-        else:
-            x_text = self.text_embedding_layer(text)
-            x_text = torch.transpose(x_text, 1, 2)
-
-        x_text = self.text_seq_layers(x_text)
-
-        x = torch.cat((x_img, x_text), dim=1)
-        x = self.prediction_layer(x)
-
-        return x
 
 
 class PTImageTextClassifier(PTBaseClassifier):
@@ -208,7 +141,7 @@ class PTImageTextClassifier(PTBaseClassifier):
             print("Getting index from the embedding model")
 
             # restore a gensim model for getting token index.
-            embedding_model = PTImageTextUtil.load_embedding_model(self.embedding)
+            embedding_model = PTModelUtil.load_embedding_model(self.embedding)
 
             # convert token into token index in embedding model weight matrix
             df_image_data['tokens_index'] = PTImageTextUtil.get_token_index(
@@ -241,7 +174,7 @@ class PTImageTextClassifier(PTBaseClassifier):
             df_image_data['product_name_description'] = df_image_data["product_name_description"].apply(
                 PTImageTextUtil.clean_text)
 
-            _, tokenizer = PTImageTextUtil.prepare_embedding_model(
+            _, tokenizer = PTModelUtil.prepare_embedding_model(
                 embedding=self.embedding,
                 embedding_dim=self.embedding_dim,
                 pretrain_model=self.embedding_pretrain_model,
@@ -321,10 +254,10 @@ class PTImageTextClassifier(PTBaseClassifier):
         """
 
         # we don't train the sequential layers here as it has been trained and fine-tuned in previous steps
-        PTImageTextUtil.set_base_model_trainable(self.text_seq_layers, 0)
-        PTImageTextUtil.set_base_model_trainable(self.image_seq_layers, 0)
-        PTImageTextUtil.set_base_model_trainable(self.image_base_model, 0)
-        PTImageTextUtil.set_base_model_trainable(self.text_embedding_layer, 0)
+        PTModelUtil.set_base_model_trainable(self.text_seq_layers, 0)
+        PTModelUtil.set_base_model_trainable(self.image_seq_layers, 0)
+        PTModelUtil.set_base_model_trainable(self.image_base_model, 0)
+        PTModelUtil.set_base_model_trainable(self.text_embedding_layer, 0)
 
         self.model = PTImageTextModel(
             self.num_class,

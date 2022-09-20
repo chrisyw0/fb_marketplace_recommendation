@@ -3,8 +3,8 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 from keras.utils.vis_utils import plot_model
-from fbRecommendation.dl.base.base_classifier import BaseClassifier
 from official.nlp import optimization
+from fbRecommendation.dl.base.base_classifier import BaseClassifier
 
 
 class TFBaseClassifier(BaseClassifier):

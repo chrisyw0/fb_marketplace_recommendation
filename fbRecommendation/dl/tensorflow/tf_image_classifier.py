@@ -7,8 +7,9 @@ from sklearn.metrics import classification_report
 from dataclasses import field
 
 from fbRecommendation.dataset.prepare_dataset import DatasetHelper
-from .tf_base_classifier import TFBaseClassifier, get_optimizer
-from fbRecommendation.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
+from fbRecommendation.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
+from fbRecommendation.dl.tensorflow.model.tf_model_util import TFModelUtil
+from fbRecommendation.dl.tensorflow.model.tf_model import TFImageModel
 from fbRecommendation.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
 
 
@@ -189,58 +190,22 @@ class TFImageClassifier(TFBaseClassifier):
         of this project.
         """
 
-        inputs = tf.keras.layers.Input(shape=self.image_shape)
-
-        img_augmentation = tf.keras.models.Sequential(
-            [
-                tf.keras.layers.RandomFlip('horizontal'),
-                tf.keras.layers.RandomRotation(0.2)
-            ],
-            name="img_augmentation"
-        )
-
-        if self.image_base_model == "RestNet50":
-            preprocess_input = tf.keras.applications.resnet_v2.preprocess_input
-        elif self.image_base_model.startswith("EfficientNet"):
-            preprocess_input = tf.keras.applications.efficientnet_v2.preprocess_input
-
-        self.tf_image_base_model = TFImageTextUtil.prepare_image_base_model(
-            self.image_base_model,
-            self.image_shape
-        )
-
-        image_global_average_layer = tf.keras.layers.GlobalAveragePooling2D(name="pooling")
-        image_dropout_0 = tf.keras.layers.Dropout(self.dropout_conv, name="dropout_0")
-        image_dropout_1 = tf.keras.layers.Dropout(self.dropout_pred, name="dropout_1")
-        image_dense_layer_0 = tf.keras.layers.Dense(1024, activation="relu", name="dense_0")
-        image_dense_layer_1 = tf.keras.layers.Dense(256, activation="relu", name="dense_1")
-        prediction = tf.keras.layers.Dense(self.num_class, name="prediction")
-
-        layers = [
-            self.tf_image_base_model,
-            image_global_average_layer,
-            image_dropout_0,
-            image_dense_layer_0,
-            image_dense_layer_1,
-            image_dropout_1,
-        ]
-
-        self.image_seq_layers = tf.keras.Sequential(
-            layers=layers, name="image_sequential"
-        )
-
-        x = img_augmentation(inputs)
-        x = preprocess_input(x)
-        x = self.image_seq_layers(x)
-        outputs = prediction(x)
-
         optimizer = get_optimizer(
             self.ds_train,
             self.epoch,
             self.learning_rate
         )
 
-        self.model = tf.keras.Model(inputs, outputs, name=self.model_name)
+        kwargs = {
+            "num_class": self.num_class,
+            "model_name": self.model_name,
+            "dropout_conv": self.dropout_conv,
+            "dropout_pred": self.dropout_pred,
+            "image_shape": self.image_shape,
+            "image_base_model": self.image_base_model
+        }
+
+        self.model, self.tf_image_base_model, self.image_seq_layers = TFImageModel.get_model(**kwargs)
         self.model.compile(optimizer=optimizer,
                            loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
                            metrics=['accuracy'])
@@ -294,8 +259,8 @@ class TFImageClassifier(TFBaseClassifier):
             print("Start fine-tuning")
             print("=" * 80)
 
-            TFImageTextUtil.set_base_model_trainable(self.tf_image_base_model,
-                                                     self.fine_tune_base_model_layers)
+            TFModelUtil.set_base_model_trainable(self.tf_image_base_model,
+                                                 self.fine_tune_base_model_layers)
 
             optimizer = get_optimizer(
                 self.ds_train,

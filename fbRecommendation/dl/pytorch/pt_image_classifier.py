@@ -4,7 +4,6 @@ import torch.nn as nn
 
 from typing import Tuple, List, Any
 from dataclasses import field
-from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 
 from fbRecommendation.dataset.prepare_dataset import DatasetHelper
@@ -15,63 +14,10 @@ from .pt_base_classifier import (
     predict_model,
     prepare_optimizer_and_scheduler
 )
-from fbRecommendation.dl.pytorch.utils.pt_image_text_util import PTImageTextUtil
 from fbRecommendation.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
+from fbRecommendation.dl.pytorch.model.pt_model_util import PTModelUtil
+from fbRecommendation.dl.pytorch.model.pt_model import PTImageModel
 
-
-class PTImageModel(nn.Module):
-    """
-    This is the image model in nn.Module format containing image layers (transformation  + based model +
-    image sequential layers) and finally a prediction layer.
-
-    The model override the forward method of the nn.Module which gives instructions how to process the input data
-    and give prediction from it.
-
-    It accepts image input format in torch.Tensor, which should be a 4d tensor
-    [batch_size, channel, height, width]
-    """
-    def __init__(
-            self,
-            num_class: int,
-            image_base_model: nn.Module,
-            image_shape: Tuple[int, int, int],
-            dropout_conv: float,
-            dropout_pred: float,
-            base_model_output_dim: int
-    ):
-        super(PTImageModel, self).__init__()
-        self.transforms = nn.Sequential(
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(72),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        )
-
-        self.image_base_model = PTImageTextUtil.prepare_image_base_model(
-            image_base_model,
-            image_shape
-        )
-
-        self.sequential_layer = nn.Sequential(
-            nn.Dropout(dropout_conv),
-            nn.Linear(base_model_output_dim, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 256),
-            nn.ReLU(),
-            nn.Dropout(dropout_pred)
-        )
-
-        self.prediction_layer = nn.Linear(256, num_class)
-
-    def forward(self, image: torch.Tensor):
-        x = self.transforms(image)
-        x = self.image_base_model(x)
-        x = x.squeeze()
-        if x.dim() == 1:
-            # if only one data in a batch, it adds back the dimension
-            x = x.unsqueeze(0)
-        x = self.sequential_layer(x)
-        x = self.prediction_layer(x)
-        return x
 
 class PTImageClassifier(PTBaseClassifier):
     """
@@ -285,7 +231,7 @@ class PTImageClassifier(PTBaseClassifier):
             print("Start fine-tuning")
             print("=" * 80)
 
-            PTImageTextUtil.set_base_model_trainable(
+            PTModelUtil.set_base_model_trainable(
                 self.model.image_base_model,
                 self.fine_tune_base_model_layers
             )

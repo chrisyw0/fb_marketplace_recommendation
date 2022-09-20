@@ -6,25 +6,12 @@ setup(
     python_requires=">=3.8",
     packages=find_packages(
         where='./',
-        include=['fbRecommendation.dl.*', 'fbRecommendation.dataset'],
-        exclude=['fbRecommendation.dl.pytorch*'],
+        include=['fbRecommendation.dl.base.model.*', 'fbRecommendation.dl.tensorflow.model.*'],
+        exclude=[],
     ),
     install_requires=[
-        "numpy",
-        "pandas",
-        "spacy",
-        "tqdm",
-        "pillow",
-        "scikit-learn",
-        "tensorflow<=2.9.1",
-        "tensorflow-text",
-        "tensorflow_addons",
-        "tf-models-official",
-        "tensorboard",
-        "gensim",
-        "sklearn",
-        "matplotlib",
-        "gin-config",
-        "emoji"
+        "tensorflow>=2.8",
+        "tensorflow_hub",
+        "gensim"
     ],
 )

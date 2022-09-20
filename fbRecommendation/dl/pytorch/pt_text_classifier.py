@@ -15,54 +15,11 @@ from fbRecommendation.dl.pytorch.pt_base_classifier import (
     predict_model,
     prepare_optimizer_and_scheduler
 )
+
+from fbRecommendation.dl.pytorch.model.pt_model_util import PTModelUtil
+from fbRecommendation.dl.pytorch.model.pt_model import PTTextModel
 from fbRecommendation.dl.pytorch.utils.pt_dataset_generator import PTImageTextDataset
 from fbRecommendation.dataset.prepare_dataset import DatasetHelper
-
-
-class PTTextModel(nn.Module):
-    """
-    This is the text model in nn.Module format containing text layers (embedding and text sequential layers)
-    and finally a prediction layer. The embedding layer should be non-transformer based model
-    i.e. Word2Vec, Fasttext or Glove
-
-    The model override the forward method of the nn.Module which gives instructions how to process the input data
-    and give prediction from it.
-
-    It accepts input format in torch.Tensor [batch_size, max_token_number].
-    """
-    def __init__(
-            self,
-            num_class,
-            embedding_dim,
-            embedding_layer,
-            dropout_conv,
-            dropout_pred
-    ):
-        super(PTTextModel, self).__init__()
-        self.embedding_layer = embedding_layer
-
-        self.sequential_layer = nn.Sequential(
-            nn.Conv1d(embedding_dim, 48, 3),
-            nn.ReLU(),
-            nn.AvgPool1d(2),
-            nn.Conv1d(48, 24, 3),
-            nn.ReLU(),
-            nn.AvgPool1d(2),
-            nn.Flatten(),
-            nn.Dropout(dropout_conv),
-            nn.Linear(8712, 256),
-            nn.ReLU(),
-            nn.Dropout(dropout_pred)
-        )
-
-        self.prediction_layer = nn.Linear(256, num_class)
-
-    def forward(self, text):
-        x = self.embedding_layer(text)
-        x = torch.transpose(x, 1, 2)
-        x = self.sequential_layer(x)
-        x = self.prediction_layer(x)
-        return x
 
 
 class PTTextClassifier(PTBaseClassifier):
@@ -156,7 +113,7 @@ class PTTextClassifier(PTBaseClassifier):
               f"pre-train model {self.embedding_pretrain_model}")
 
         # create and train the embedding model
-        self.embedding_model = PTImageTextUtil.prepare_embedding_model(
+        self.embedding_model = PTModelUtil.prepare_embedding_model(
             embedding=self.embedding,
             embedding_dim=self.embedding_dim,
             training_data=training_data,
@@ -239,7 +196,7 @@ class PTTextClassifier(PTBaseClassifier):
 
         """
 
-        self.embedding_layer = PTImageTextUtil.gensim_to_pytorch_embedding(
+        self.embedding_layer = PTModelUtil.gensim_to_pytorch_embedding(
             self.embedding_model)
 
         self.model = PTTextModel(
@@ -308,7 +265,7 @@ class PTTextClassifier(PTBaseClassifier):
             print("Start fine-tuning")
             print("=" * 80)
 
-            PTImageTextUtil.set_base_model_trainable(
+            PTModelUtil.set_base_model_trainable(
                 self.model.embedding_layer, -1
             )
 

@@ -7,6 +7,8 @@ from dataclasses import field
 from sklearn.metrics import classification_report
 
 from fbRecommendation.dl.tensorflow.utils.tf_image_text_util import TFImageTextUtil
+from fbRecommendation.dl.tensorflow.model.tf_model_util import TFModelUtil
+from fbRecommendation.dl.tensorflow.model.tf_model import TFTextModel
 from fbRecommendation.dl.tensorflow.tf_base_classifier import TFBaseClassifier, get_optimizer
 from fbRecommendation.dl.tensorflow.utils.tf_dataset_generator import TFDatasetGenerator
 from fbRecommendation.dataset.prepare_dataset import DatasetHelper
@@ -101,7 +103,7 @@ class TFTextClassifier(TFBaseClassifier):
               f"pre-train model {self.embedding_pretrain_model}")
 
         # create and train the embedding model
-        self.embedding_model = TFImageTextUtil.prepare_embedding_model(
+        self.embedding_model = TFModelUtil.prepare_embedding_model(
             embedding=self.embedding,
             embedding_dim=self.embedding_dim,
             training_data=training_data,
@@ -211,44 +213,16 @@ class TFTextClassifier(TFBaseClassifier):
 
         """
 
-        self.embedding_layer = TFImageTextUtil.gensim_to_keras_embedding(
-            self.embedding_model,
-            train_embeddings=False,
-            input_shape=(self.num_max_tokens,))
+        kwargs = {
+            "num_class": self.num_class,
+            "model_name": self.model_name,
+            "dropout_conv": self.dropout_conv,
+            "dropout_pred": self.dropout_pred,
+            "num_max_tokens": self.num_max_tokens,
+            "embedding_model": self.embedding_model
+        }
 
-        text_conv_layer_1 = tf.keras.layers.Conv1D(48, 3, activation="relu", name="text_conv_1")
-        text_pooling_layer_1 = tf.keras.layers.AveragePooling1D(2, name="text_avg_pool_1")
-        text_dropout_1 = tf.keras.layers.Dropout(self.dropout_conv, name="text_dropout_conv_1")
-        text_conv_layer_2 = tf.keras.layers.Conv1D(24, 3, activation="relu", name="text_conv_2")
-        text_pooling_layer_2 = tf.keras.layers.AveragePooling1D(2, name="text_avg_pool_2")
-        text_flatten = tf.keras.layers.Flatten(name="text_flatten")
-        text_dropout_2 = tf.keras.layers.Dropout(self.dropout_conv, name="text_dropout_conv_2")
-        text_dense = tf.keras.layers.Dense(256, activation='relu', name="text_dense_1")
-        text_dropout_pred = tf.keras.layers.Dropout(self.dropout_pred, name="text_dropout_pred_1")
-        prediction = tf.keras.layers.Dense(self.num_class, name="prediction")
-
-        inputs = tf.keras.layers.Input(shape=(self.num_max_tokens,), name="input")
-
-        layers = [
-            self.embedding_layer,
-            text_conv_layer_1,
-            text_pooling_layer_1,
-            text_dropout_1,
-            text_conv_layer_2,
-            text_pooling_layer_2,
-            text_flatten,
-            text_dropout_2,
-            text_dense,
-            text_dropout_pred
-        ]
-
-        self.text_seq_layers = tf.keras.models.Sequential(layers=layers,
-                                                          name="text_seq_layers")
-
-        x = self.text_seq_layers(inputs)
-        outputs = prediction(x)
-
-        self.model = tf.keras.Model(inputs, outputs, name=self.model_name)
+        self.model, self.text_seq_layers, self.embedding_layer = TFTextModel.get_model(**kwargs)
 
         optimizer = get_optimizer(
             self.ds_train,
@@ -313,7 +287,7 @@ class TFTextClassifier(TFBaseClassifier):
             print("Start fine-tuning")
             print("=" * 80)
 
-            TFImageTextUtil.set_base_model_trainable(self.embedding_layer, 1)
+            TFModelUtil.set_base_model_trainable(self.embedding_layer, 1)
 
             optimizer = get_optimizer(
                 self.ds_train,
